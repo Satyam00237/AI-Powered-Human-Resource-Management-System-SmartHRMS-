@@ -87,6 +87,24 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
   const [postJobLoc, setPostJobLoc] = useState('');
   const [postJobDesc, setPostJobDesc] = useState('');
 
+  // Candidate Interview Scheduling State
+  const [selectedScheduleCand, setSelectedScheduleCand] = useState(null);
+  const [candSchDate, setCandSchDate] = useState('');
+  const [candSchTime, setCandSchTime] = useState('');
+  const [candSchEndTime, setCandSchEndTime] = useState('');
+
+  useEffect(() => {
+    if (selectedScheduleCand) {
+      setCandSchDate(selectedScheduleCand.interviewDate || '');
+      setCandSchTime(selectedScheduleCand.interviewTime || '');
+      setCandSchEndTime(selectedScheduleCand.interviewEndTime || '');
+    } else {
+      setCandSchDate('');
+      setCandSchTime('');
+      setCandSchEndTime('');
+    }
+  }, [selectedScheduleCand]);
+
   // Load Data
   useEffect(() => {
     const loadAdminData = async () => {
@@ -1722,19 +1740,27 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                           <td className="py-3 text-right space-x-2">
                             {c.status === 'Applied' && (
                               <button
-                                onClick={() => handleUpdateCandStatus(c.id, 'Interviewing')}
+                                onClick={() => setSelectedScheduleCand(c)}
                                 className="px-2 py-1 bg-violet-600/10 hover:bg-violet-600 text-violet-400 hover:text-white border border-violet-555/20 rounded text-[10px] font-bold transition-all cursor-pointer"
                               >
-                                Shortlist
+                                Schedule
                               </button>
                             )}
                             {c.status === 'Interviewing' && (
-                              <button
-                                onClick={() => handleUpdateCandStatus(c.id, 'Offered')}
-                                className="px-2 py-1 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-555/20 rounded text-[10px] font-bold transition-all cursor-pointer"
-                              >
-                                Offer
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => setSelectedScheduleCand(c)}
+                                  className="px-2 py-1 bg-violet-600/10 hover:bg-violet-600 text-violet-400 hover:text-white border border-violet-555/20 rounded text-[10px] font-bold transition-all cursor-pointer"
+                                >
+                                  Reschedule
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateCandStatus(c.id, 'Offered')}
+                                  className="px-2 py-1 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-555/20 rounded text-[10px] font-bold transition-all cursor-pointer"
+                                >
+                                  Offer
+                                </button>
+                              </>
                             )}
                             {c.status !== 'Rejected' && c.status !== 'Offered' && (
                               <button
@@ -1886,9 +1912,15 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                           <td className="py-3 text-slate-300">{c.jobTitle}</td>
                           <td className="py-3 font-semibold text-indigo-400">{c.matchScore}%</td>
                           <td className="py-3 text-slate-400">
-                            {c.interviewDate ? `${c.interviewDate} @ ${c.interviewTime}` : 'Not Scheduled'}
+                            {c.interviewDate ? `${c.interviewDate} ${c.interviewTime ? `@ ${c.interviewTime}` : ''}${c.interviewEndTime ? ` - ${c.interviewEndTime}` : ''}` : 'Not Scheduled'}
                           </td>
-                          <td className="py-3 text-right">
+                          <td className="py-3 text-right space-x-2">
+                            <button
+                              onClick={() => setSelectedScheduleCand(c)}
+                              className="px-2.5 py-1 bg-violet-600/10 hover:bg-violet-600 text-violet-400 hover:text-white border border-violet-500/20 rounded text-[10px] font-bold transition-all cursor-pointer"
+                            >
+                              {c.interviewDate ? 'Reschedule' : 'Schedule'}
+                            </button>
                             <button
                               onClick={() => handleUpdateCandStatus(c.id, 'Offered')}
                               className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 rounded text-[10px] font-bold cursor-pointer"
@@ -2708,6 +2740,97 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold rounded-xl border border-slate-750 cursor-pointer"
               >
                 Close Transcript
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Candidate Interview Schedule Modal */}
+      {selectedScheduleCand && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-200">Schedule Interview</h3>
+                <p className="text-[10px] text-indigo-400 font-semibold">{selectedScheduleCand.name} — {selectedScheduleCand.jobTitle}</p>
+              </div>
+              <button
+                onClick={() => setSelectedScheduleCand(null)}
+                className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {selectedScheduleCand.interviewDate && (
+              <div className="p-2.5 bg-slate-950/70 rounded-xl border border-slate-800 flex items-center gap-2 text-xs text-slate-300">
+                <Clock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span>
+                  Current: <strong className="text-slate-200">{selectedScheduleCand.interviewDate} {selectedScheduleCand.interviewTime ? `at ${selectedScheduleCand.interviewTime}` : ''}{selectedScheduleCand.interviewEndTime ? ` - ${selectedScheduleCand.interviewEndTime}` : ''}</strong>
+                </span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Interview Date</label>
+                <input
+                  type="date"
+                  value={candSchDate}
+                  onChange={(e) => setCandSchDate(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Start Time</label>
+                <input
+                  type="time"
+                  value={candSchTime}
+                  onChange={(e) => setCandSchTime(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5">End Time (Closes)</label>
+                <input
+                  type="time"
+                  value={candSchEndTime}
+                  onChange={(e) => setCandSchEndTime(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-3 border-t border-slate-800">
+              <button
+                onClick={() => setSelectedScheduleCand(null)}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!candSchDate || !candSchTime || !candSchEndTime) {
+                    alert('Please select Interview Date, Start Time, and End Time.');
+                    return;
+                  }
+                  if (candSchEndTime <= candSchTime) {
+                    alert('End Time must be after Start Time.');
+                    return;
+                  }
+                  try {
+                    await apiService.updateCandidateStatus(selectedScheduleCand.id, 'Interviewing', candSchDate, candSchTime, candSchEndTime);
+                    setSelectedScheduleCand(null);
+                    onTriggerRefresh();
+                    alert('Interview scheduled successfully!');
+                  } catch (e) {
+                    alert('Failed to schedule interview.');
+                  }
+                }}
+                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-550 text-white text-xs font-semibold rounded-xl border border-indigo-500 shadow-md transition-all hover:scale-[1.01] cursor-pointer"
+              >
+                Save Schedule
               </button>
             </div>
           </div>

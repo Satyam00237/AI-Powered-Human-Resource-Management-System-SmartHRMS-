@@ -79,8 +79,10 @@ const candidateSchema = new mongoose.Schema({
   status: { type: String, default: 'Applied' }, // 'Applied', 'Screening', 'Interviewing', etc.
   interviewDate: { type: String, default: '' },
   interviewTime: { type: String, default: '' },
+  interviewEndTime: { type: String, default: '' },
   techInterviewDate: { type: String, default: '' },
   techInterviewTime: { type: String, default: '' },
+  techInterviewEndTime: { type: String, default: '' },
   evaluation: {
     score: Number,
     strengths: [String],

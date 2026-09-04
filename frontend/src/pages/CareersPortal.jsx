@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Briefcase, FileText, CheckCircle, Clock, 
-  User, Lock, Mail, Upload, Sparkles, LogOut, 
+import {
+  Briefcase, FileText, CheckCircle, Clock,
+  User, Lock, Mail, Upload, Sparkles, LogOut,
   MapPin, Calendar, ArrowLeft, Send, AlertCircle, Search, Building, ChevronRight,
   Heart, Cpu, Globe, Award, Shield, Check, Bell,
   Play, Volume2, Mic, MicOff, RefreshCw, MessageSquare
@@ -23,7 +23,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
   const [evaluating, setEvaluating] = useState(false);
   const [interviewReport, setInterviewReport] = useState(null);
   const [speechSupported, setSpeechSupported] = useState(false);
-  
+
   // Webcam States & Refs
   const videoRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -68,7 +68,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
       }
     };
   }, []);
-  
+
   // Auth Modal States (Login / Registration)
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login', 'register'
@@ -178,10 +178,18 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
 
   // Start Voice Interview Flow
   const handleStartInterview = async (app) => {
+    if (app.interviewDate && app.interviewEndTime) {
+      const endDateTime = new Date(`${app.interviewDate}T${app.interviewEndTime}`);
+      if (!isNaN(endDateTime.getTime()) && new Date() > endDateTime) {
+        alert('Interview window has expired. Access is no longer available. Please contact HR to reschedule.');
+        return;
+      }
+    }
+
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch (e) {}
+      } catch (e) { }
     }
     setIsListening(false);
     setActiveInterviewApp(app);
@@ -189,17 +197,17 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
     setInterviewRound(1);
     setInterviewReport(null);
     setSpeechAnswer('');
-    
+
     const welcomeText = `Hello ${currentUser.name}, thank you for joining the interview for the ${app.jobTitle} position today. Let's begin.`;
-    
+
     setEvaluating(true);
     try {
       const initialQuestion = await apiService.getNextInterviewQuestion(app.jobTitle, 1, [], app.resumeText || '');
-      
+
       setInterviewHistory([
         { role: 'assistant', content: initialQuestion }
       ]);
-      
+
       const combinedSpeech = `${welcomeText} ${initialQuestion}`;
       speakQuestion(combinedSpeech);
     } catch (e) {
@@ -233,7 +241,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch (err) {}
+      } catch (err) { }
     }
 
     const rec = new SpeechRecognition();
@@ -302,7 +310,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
     if (interviewRound < 3) {
       const nextRoundNum = interviewRound + 1;
       setInterviewRound(nextRoundNum);
-      
+
       setEvaluating(true);
       try {
         const nextQ = await apiService.getNextInterviewQuestion(jobTitle, nextRoundNum, updatedHistory, activeInterviewApp.resumeText || '');
@@ -318,17 +326,17 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
       setEvaluating(true);
       try {
         const report = await apiService.evaluateInterview(jobTitle, updatedHistory);
-        
+
         // Auto-shortlist threshold: 75+
         const passed = report.score >= 75;
         const status = passed ? 'Shortlisted' : 'Rejected';
-        
+
         await apiService.saveInterviewReport(activeInterviewApp.id, status, report.score, report);
 
         setInterviewReport(report);
         setIsInterviewing(false);
         loadApplications();
-        
+
         if (passed) {
           speakQuestion(`Congratulations! You are shortlisted for the one-to-one technical interview. Date and time will be notified later.`);
         } else {
@@ -353,7 +361,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
       setProfileSkills(data.skills || '');
       setProfileEducation(data.education || '');
       setProfileExperience(data.experience || '');
-      
+
       setApplyName(data.name || '');
       setApplySkills(data.skills || '');
       setApplyEducation(data.education || '');
@@ -496,7 +504,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
         },
         applyResumeFile
       );
-      
+
       setApplySuccess(true);
       loadApplications();
       setTimeout(() => {
@@ -514,8 +522,8 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
 
   const departments = ['All', ...new Set(jobs.map(j => j.department))];
   const filteredJobs = jobs.filter(j => {
-    const matchSearch = j.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        j.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchSearch = j.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      j.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchDept = selectedDept === 'All' || j.department === selectedDept;
     return matchSearch && matchDept;
   });
@@ -541,7 +549,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
     return (
       <div className="min-h-screen w-full bg-slate-950 text-slate-100 font-sans flex items-center justify-center p-4">
         <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-3xl p-6 max-w-4xl w-full min-h-[500px] flex flex-col justify-between shadow-2xl relative animate-fade-in">
-          
+
           {isInterviewing ? (
             <div className="flex-1 flex flex-col justify-between">
               {/* Header */}
@@ -564,7 +572,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                     <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
                     <span className="text-[9px] font-bold uppercase tracking-wider text-rose-400">REC LIVE</span>
                   </div>
-                  
+
                   {/* AI Logo / Assistant Label */}
                   <div className="absolute top-6 right-6 z-10 flex items-center gap-1.5 bg-indigo-500/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-indigo-500/20">
                     <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
@@ -590,7 +598,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="mt-3 text-center text-[10px] text-slate-500 font-semibold bg-slate-950/40 p-2 rounded-lg border border-slate-900">
                     Webcam feed is processed locally for gesture and facial confidence indicators.
                   </div>
@@ -602,11 +610,10 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                   <div className="flex-1 p-4 bg-slate-950/40 border border-slate-850 rounded-2xl overflow-y-auto max-h-[220px] space-y-3.5 scrollbar-thin mb-4">
                     {interviewHistory.map((h, idx) => (
                       <div key={idx} className={`flex ${h.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${
-                          h.role === 'user'
+                        <div className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${h.role === 'user'
                             ? 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-600/10'
                             : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700/65'
-                        }`}>
+                          }`}>
                           <span className="font-bold block mb-1 text-[9px] uppercase tracking-wide opacity-80">
                             {h.role === 'user' ? currentUser.name : 'AI Interviewer'}
                           </span>
@@ -631,11 +638,10 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                         <button
                           onClick={toggleListening}
                           disabled={evaluating}
-                          className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg border transition-all ${
-                            isListening 
-                              ? 'bg-rose-600 text-white border-rose-500 animate-pulse scale-[1.03]' 
+                          className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg border transition-all ${isListening
+                              ? 'bg-rose-600 text-white border-rose-500 animate-pulse scale-[1.03]'
                               : 'bg-slate-950 text-slate-400 hover:text-slate-200 border-slate-855 hover:border-slate-750'
-                          }`}
+                            }`}
                           title={isListening ? "Listening... Click to pause" : "Click to speak answer"}
                         >
                           {isListening ? <Mic className="w-5 h-5 animate-pulse" /> : <MicOff className="w-5 h-5" />}
@@ -673,7 +679,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                         if (recognitionRef.current) {
                           try {
                             recognitionRef.current.stop();
-                          } catch (e) {}
+                          } catch (e) { }
                         }
                         setIsListening(false);
                       }}
@@ -693,11 +699,10 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                     <h4 className="text-base font-bold text-slate-200">AI Recruiter Evaluation Report</h4>
                     <p className="text-xs text-indigo-400 font-semibold">{activeInterviewApp.jobTitle}</p>
                   </div>
-                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                    interviewReport.score >= 75 
-                      ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20' 
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${interviewReport.score >= 75
+                      ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20'
                       : 'bg-rose-500/15 text-rose-400 border-rose-500/20'
-                  }`}>
+                    }`}>
                     {interviewReport.score >= 75 ? 'SHORTLISTED' : 'COMPLETED'}
                   </span>
                 </div>
@@ -768,13 +773,13 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 font-sans overflow-y-auto">
-      
+
       {/* 1. TOP NAVBAR */}
       <nav className="sticky top-0 bg-slate-950/80 backdrop-blur-xl border-b border-slate-900/80 z-40 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             {onClose && !currentUser && (
-              <button 
+              <button
                 onClick={onClose}
                 className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-850 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all"
               >
@@ -800,11 +805,10 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                 <button
                   key={tab.id}
                   onClick={() => { setActiveTab(tab.id); setSelectedJob(null); }}
-                  className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                    activeTab === tab.id
+                  className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${activeTab === tab.id
                       ? 'bg-indigo-600 text-white shadow-md'
                       : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -829,11 +833,10 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                       loadApplications();
                     }
                   }}
-                  className={`p-2 rounded-xl border transition-all relative ${
-                    showNotifications 
-                      ? 'bg-indigo-650 border-indigo-550 text-white shadow-md' 
+                  className={`p-2 rounded-xl border transition-all relative ${showNotifications
+                      ? 'bg-indigo-650 border-indigo-550 text-white shadow-md'
                       : 'bg-slate-900 border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-255'
-                  }`}
+                    }`}
                   title="Notifications"
                 >
                   <Bell className="w-4 h-4" />
@@ -841,7 +844,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                     <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 border border-slate-950 rounded-full animate-pulse" />
                   )}
                 </button>
-                
+
                 {showNotifications && (
                   <div className="absolute right-0 mt-2.5 w-80 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-4 z-50 space-y-3">
                     <div className="flex justify-between items-center border-b border-slate-805 pb-2">
@@ -852,12 +855,12 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                         </span>
                       )}
                     </div>
-                    
+
                     <div className="max-h-60 overflow-y-auto space-y-2.5 divide-y divide-slate-850/60 scrollbar-thin pr-1">
                       {notifications.length > 0 ? (
                         notifications.map((app, idx) => (
-                          <div 
-                            key={app.id} 
+                          <div
+                            key={app.id}
                             onClick={() => {
                               setActiveTab('applications');
                               setSelectedJob(null);
@@ -879,7 +882,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                                     <p className="text-indigo-400 font-semibold mt-0.5">✨ Shortlisted for AI Video Interview</p>
                                     {app.interviewDate ? (
                                       <p className="text-slate-400 text-[10px] mt-0.5">
-                                        Date: {app.interviewDate}
+                                        Schedule: {app.interviewDate} {app.interviewTime ? `at ${app.interviewTime}` : ''}{app.interviewEndTime ? ` (closes at ${app.interviewEndTime})` : ''}
                                       </p>
                                     ) : (
                                       <p className="text-slate-500 italic text-[10px] mt-0.5">Interview schedule pending</p>
@@ -915,7 +918,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                 )}
               </div>
 
-              <button 
+              <button
                 onClick={onLogout}
                 className="p-2 rounded-xl bg-slate-900 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/20 text-slate-400 hover:text-rose-450 transition-all"
                 title="Logout"
@@ -944,11 +947,11 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
 
       {/* 2. MAIN PAGE WRAPPER */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-        
+
         {/* ==================================================== */}
         {activeTab === 'jobs' && !selectedJob && (
           <div className="space-y-12">
-            
+
             {/* HERO SECTION */}
             <div className="text-center py-16 relative max-w-4xl mx-auto space-y-6">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-605/10 rounded-full blur-[100px] pointer-events-none" />
@@ -961,7 +964,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
               <p className="text-base sm:text-lg text-slate-350 max-w-2xl mx-auto leading-relaxed">
                 Join our high-performing team and build next-generation AI automation portals. We value ownership, speed, and design-first thinking.
               </p>
-              
+
               {/* Micro-perks */}
               <div className="flex flex-wrap items-center justify-center gap-4 pt-4 text-sm text-slate-400 font-semibold uppercase tracking-wider">
                 <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-indigo-400" /> Remote First</span>
@@ -999,7 +1002,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                   <h3 className="text-xl font-bold text-slate-200">Open Opportunities</h3>
                   <p className="text-sm text-slate-450 mt-1">Filter by departments or search positions directly</p>
                 </div>
-                
+
                 {/* Filters */}
                 <div className="flex gap-3">
                   <div className="relative">
@@ -1028,8 +1031,8 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {filteredJobs.length > 0 ? (
                   filteredJobs.map(job => (
-                    <div 
-                      key={job.id} 
+                    <div
+                      key={job.id}
                       className="bg-slate-900/30 hover:bg-slate-900/60 border border-slate-900 hover:border-slate-800 p-6 rounded-2xl flex flex-col justify-between transition-all group shadow-md"
                     >
                       <div>
@@ -1141,7 +1144,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                 <h3 className="text-lg font-bold text-slate-200">Submitted Applications</h3>
                 <p className="text-xs text-slate-450 mt-0.5">Track the screening and evaluation stage of your submissions</p>
               </div>
-              <button 
+              <button
                 onClick={loadApplications}
                 className="text-xs font-extrabold text-indigo-400 hover:text-indigo-350 transition-colors"
               >
@@ -1165,7 +1168,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                           <span className="flex items-center gap-1"><FileText className="w-4 h-4" /> {app.resumeFileName}</span>
                         )}
                       </div>
-                             {/* Selection / Interview Schedule / Rejection details */}
+                      {/* Selection / Interview Schedule / Rejection details */}
                       {app.status === 'Interviewing' && (
                         <div className="mt-2 p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs space-y-3 max-w-md animate-fade-in">
                           <p className="text-indigo-400 font-bold flex items-center gap-1">
@@ -1174,39 +1177,93 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                           </p>
                           {app.interviewDate ? (
                             <div className="space-y-2">
-                              <p className="text-slate-350">
-                                Date: <span className="font-bold text-slate-200">{app.interviewDate}</span>
-                              </p>
+                              <div className="flex items-center gap-2 text-slate-350 flex-wrap">
+                                <span>Interview Schedule:</span>
+                                <span className="font-bold text-slate-200">{app.interviewDate}</span>
+                                {app.interviewTime && (
+                                  <span className="font-bold text-indigo-400">at {app.interviewTime}</span>
+                                )}
+                                {app.interviewEndTime && (
+                                  <span className="text-slate-400 font-semibold">to <span className="text-amber-400 font-bold">{app.interviewEndTime}</span></span>
+                                )}
+                              </div>
                               {(() => {
                                 const now = new Date();
                                 const year = now.getFullYear();
                                 const month = String(now.getMonth() + 1).padStart(2, '0');
                                 const day = String(now.getDate()).padStart(2, '0');
                                 const todayStr = `${year}-${month}-${day}`;
-                                const isLocked = app.interviewDate ? todayStr < app.interviewDate : true;
 
-                                if (isLocked) {
+                                let isExpired = false;
+                                let isLocked = false;
+
+                                if (app.interviewDate) {
+                                  // Check if expired (past end time)
+                                  if (app.interviewEndTime) {
+                                    const endDateTime = new Date(`${app.interviewDate}T${app.interviewEndTime}`);
+                                    if (!isNaN(endDateTime.getTime()) && now > endDateTime) {
+                                      isExpired = true;
+                                    }
+                                  } else if (app.interviewDate < todayStr) {
+                                    isExpired = true;
+                                  }
+
+                                  // Check if locked (before start time)
+                                  if (!isExpired) {
+                                    if (app.interviewTime) {
+                                      const scheduledDateTime = new Date(`${app.interviewDate}T${app.interviewTime}`);
+                                      isLocked = !isNaN(scheduledDateTime.getTime()) ? now < scheduledDateTime : todayStr < app.interviewDate;
+                                    } else {
+                                      isLocked = todayStr < app.interviewDate;
+                                    }
+                                  }
+                                }
+
+                                if (isExpired) {
                                   return (
-                                    <div className="flex items-center gap-2 p-2 bg-slate-950/60 rounded-lg text-slate-500 text-[11px] font-semibold border border-slate-900">
-                                      <Clock className="w-3.5 h-3.5 shrink-0" />
-                                      <span>Locked until scheduled date: {app.interviewDate}</span>
+                                    <div className="p-3 bg-rose-950/40 border border-rose-500/30 rounded-xl space-y-1 text-xs text-rose-300">
+                                      <div className="flex items-center gap-1.5 font-bold text-rose-400">
+                                        <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                                        <span>Interview Access Expired</span>
+                                      </div>
+                                      <p className="text-[11px] text-rose-350 leading-relaxed">
+                                        The scheduled window for this interview closed on <strong>{app.interviewDate} at {app.interviewEndTime || 'end of day'}</strong>. You can no longer access this interview. Please reach out to HR to request rescheduling.
+                                      </p>
+                                    </div>
+                                  );
+                                } else if (isLocked) {
+                                  return (
+                                    <div className="flex items-center gap-2 p-2.5 bg-slate-950/60 rounded-lg text-slate-400 text-[11px] font-semibold border border-slate-900">
+                                      <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                      <span>
+                                        Locked until scheduled time: <strong className="text-slate-200">{app.interviewDate}</strong> at <strong className="text-indigo-400">{app.interviewTime}</strong>
+                                        {app.interviewEndTime ? <span className="text-slate-400 font-medium"> (Closes at {app.interviewEndTime})</span> : ''}
+                                      </span>
                                     </div>
                                   );
                                 } else {
                                   return (
-                                    <button
-                                      onClick={() => handleStartInterview(app)}
-                                      className="w-full flex items-center justify-center gap-2 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-550 hover:to-violet-550 text-white rounded-xl text-xs font-bold shadow-md transition-all hover:scale-[1.01]"
-                                    >
-                                      <Play className="w-3.5 h-3.5" />
-                                      Start AI Video Interview
-                                    </button>
+                                    <div className="space-y-2">
+                                      {app.interviewEndTime && (
+                                        <div className="flex items-center gap-1.5 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-[11px] text-emerald-400 font-medium">
+                                          <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                          <span>Interview window is OPEN! Closes at <strong>{app.interviewEndTime}</strong>.</span>
+                                        </div>
+                                      )}
+                                      <button
+                                        onClick={() => handleStartInterview(app)}
+                                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-550 hover:to-violet-550 text-white rounded-xl text-xs font-bold shadow-md transition-all hover:scale-[1.01] cursor-pointer"
+                                      >
+                                        <Play className="w-3.5 h-3.5" />
+                                        Start AI Video Interview
+                                      </button>
+                                    </div>
                                   );
                                 }
                               })()}
                             </div>
                           ) : (
-                            <p className="text-slate-455 italic">Interview date will be scheduled shortly by HR.</p>
+                            <p className="text-slate-455 italic">Interview date & time will be scheduled shortly by HR.</p>
                           )}
                         </div>
                       )}
@@ -1253,8 +1310,8 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                     <div className="flex items-center gap-4 justify-between sm:justify-end">
                       {app.matchScore > 0 ? (
                         <div className="text-right">
-                          <span className="text-[10px] sm:text-xs text-slate-450 font-semibold uppercase block">AI Match Score</span>
-                          <span className="text-sm font-extrabold text-indigo-400">{app.matchScore}% Match</span>
+                          {/* <span className="text-[10px] sm:text-xs text-slate-450 font-semibold uppercase block">AI Match Score</span> */}
+                          {/* <span className="text-sm font-extrabold text-indigo-400">{app.matchScore}% Match</span> */}
                         </div>
                       ) : (
                         <div className="text-right text-xs text-slate-500 italic font-semibold">
@@ -1295,11 +1352,10 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
             </div>
 
             {profileMsg && (
-              <div className={`p-3 text-sm rounded-xl border ${
-                profileMsg.type === 'success' 
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+              <div className={`p-3 text-sm rounded-xl border ${profileMsg.type === 'success'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                   : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-              }`}>
+                }`}>
                 {profileMsg.text}
               </div>
             )}
@@ -1311,7 +1367,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                   <span className="text-xs font-bold text-indigo-400 uppercase tracking-wide flex items-center gap-1.5 mb-3">
                     <Upload className="w-3.5 h-3.5" /> PDF Resume File
                   </span>
-                  
+
                   {profile.resumeFileName ? (
                     <div className="bg-indigo-500/5 p-4 border border-indigo-500/15 rounded-xl flex items-center gap-3 mb-4">
                       <FileText className="w-8 h-8 text-indigo-400 shrink-0" />
@@ -1422,7 +1478,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
       {showAuthModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative space-y-5">
-            
+
             <div className="flex justify-between items-center border-b border-slate-850 pb-3">
               <h3 className="text-sm sm:text-base font-bold text-slate-300 uppercase tracking-wider">
                 {authMode === 'login' ? 'Candidate Access' : 'Register Candidate Profile'}
@@ -1520,7 +1576,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
       {showApplyModal && selectedJob && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl relative">
-            
+
             <div className="border-b border-slate-850 pb-3">
               <h3 className="text-lg font-bold text-slate-100">Apply for Job Role</h3>
               <p className="text-xs text-indigo-400 font-semibold">{selectedJob.title} • {selectedJob.location}</p>
@@ -1583,7 +1639,7 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                   <span className="text-xs font-bold text-indigo-400 uppercase tracking-wide flex items-center gap-1.5 mb-2.5">
                     <Upload className="w-3.5 h-3.5" /> PDF Application Resume
                   </span>
-                  
+
                   {applyResumeFile ? (
                     <div className="bg-indigo-500/5 p-3.5 border border-indigo-500/15 rounded-xl flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 overflow-hidden">
