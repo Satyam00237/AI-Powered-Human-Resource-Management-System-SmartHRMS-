@@ -197,6 +197,9 @@ export function getDefaultSeedData() {
       resumeText: 'Senior React Developer with 5+ years experience in React, Tailwind CSS, and Vite.',
       matchScore: 92,
       status: 'Interviewing',
+      interviewDate: getRelativeDate(1),
+      interviewTime: '14:30',
+      interviewEndTime: '16:00',
       evaluation: {
         score: 92,
         strengths: ['5+ years of robust React experience', 'Strong Tailwind styling capabilities'],

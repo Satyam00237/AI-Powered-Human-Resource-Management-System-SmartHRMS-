@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Search, Briefcase, FileText, CheckCircle, Clock, 
+  Plus, Search, Briefcase, FileText, CheckCircle, Clock, Calendar,
   Play, Volume2, Mic, MicOff, RefreshCw, Star, Sparkles, Send, Award, MessageSquare, AlertCircle, Upload,
   Trash2
 } from 'lucide-react';
@@ -36,12 +36,33 @@ export default function RecruiterDashboard({ activeSubTab, refreshKey, onTrigger
   const [jdMethod, setJdMethod] = useState('paste'); // 'paste' or 'upload'
   const [uploadingJdFile, setUploadingJdFile] = useState(false);
 
+  const buildJobDescription = (job) => {
+    if (!job) return '';
+    return `Job Title: ${job.title}
+Department: ${job.department}
+Location: ${job.location}
+Type: ${job.type}
+
+Job Description:
+${job.description}`;
+  };
+
+  const getSelectedJob = () => jobs.find(j => j.id === screenJobId);
+
+  const getMatchLevelColor = (text = '') => {
+    const lower = text.toLowerCase();
+    if (lower.startsWith('strong')) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+    if (lower.startsWith('moderate')) return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+    return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+  };
+
   // Candidate Vetting States
   const [selectedVettingCand, setSelectedVettingCand] = useState(null);
   const [selectedScheduleCand, setSelectedScheduleCand] = useState(null);
   const [isVettingScreening, setIsVettingScreening] = useState(false);
   const [schDate, setSchDate] = useState('');
   const [schTime, setSchTime] = useState('');
+  const [schEndTime, setSchEndTime] = useState('');
   const [isShortlisting, setIsShortlisting] = useState(false);
 
   // Sync date/time when candidate is loaded
@@ -50,22 +71,27 @@ export default function RecruiterDashboard({ activeSubTab, refreshKey, onTrigger
       if (selectedVettingCand.status === 'Shortlisted') {
         setSchDate(selectedVettingCand.techInterviewDate || '');
         setSchTime(selectedVettingCand.techInterviewTime || '');
+        setSchEndTime(selectedVettingCand.techInterviewEndTime || '');
       } else {
         setSchDate(selectedVettingCand.interviewDate || '');
         setSchTime(selectedVettingCand.interviewTime || '');
+        setSchEndTime(selectedVettingCand.interviewEndTime || '');
       }
       setIsShortlisting(selectedVettingCand.status === 'Interviewing');
     } else if (selectedScheduleCand) {
       if (selectedScheduleCand.status === 'Shortlisted') {
         setSchDate(selectedScheduleCand.techInterviewDate || '');
         setSchTime(selectedScheduleCand.techInterviewTime || '');
+        setSchEndTime(selectedScheduleCand.techInterviewEndTime || '');
       } else {
         setSchDate(selectedScheduleCand.interviewDate || '');
         setSchTime(selectedScheduleCand.interviewTime || '');
+        setSchEndTime(selectedScheduleCand.interviewEndTime || '');
       }
     } else {
       setSchDate('');
       setSchTime('');
+      setSchEndTime('');
       setIsShortlisting(false);
     }
   }, [selectedVettingCand, selectedScheduleCand]);
@@ -96,6 +122,9 @@ export default function RecruiterDashboard({ activeSubTab, refreshKey, onTrigger
         if (jList.length > 0 && !screenJobId) {
           setScreenJobId(jList[0].id);
           setInterviewJobId(jList[0].id);
+          if (jdSourceType === 'select') {
+            setCustomJdText(buildJobDescription(jList[0]));
+          }
         }
       } catch (e) {
         console.error('Failed to load recruiter data from backend', e);
@@ -107,6 +136,14 @@ export default function RecruiterDashboard({ activeSubTab, refreshKey, onTrigger
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     setSpeechSupported(!!SpeechRecognition);
   }, [refreshKey]);
+
+  // Auto-fill JD when a posted job is selected
+  useEffect(() => {
+    if (jdSourceType === 'select' && screenJobId) {
+      const job = jobs.find(j => j.id === screenJobId);
+      if (job) setCustomJdText(buildJobDescription(job));
+    }
+  }, [screenJobId, jdSourceType, jobs]);
 
   // Create Job
   const handleCreateJob = async (e) => {
@@ -243,10 +280,16 @@ HR Generalist | FinTech Solutions (2023 - Present)
     }
   };
 
-  // AI Resume Screening Action
+  // AI Resume Screening Action — matches JD against resume and returns score
   const handleScreenResume = async () => {
-    if (!customJdText.trim()) {
-      alert('Please enter or upload Job Description details.');
+    const selectedJob = getSelectedJob();
+    const jobDescription = jdSourceType === 'select' && selectedJob
+      ? buildJobDescription(selectedJob)
+      : customJdText.trim();
+    const jobTitle = selectedJob?.title || '';
+
+    if (!jobDescription) {
+      alert('Please select a posted job or enter a Job Description.');
       return;
     }
 
@@ -259,7 +302,12 @@ HR Generalist | FinTech Solutions (2023 - Present)
     setScreenResult(null);
 
     try {
-      const result = await apiService.screenResume(customJdText.trim(), screenResumeText.trim(), '');
+      const result = await apiService.screenResume(
+        jobDescription,
+        screenResumeText.trim(),
+        screenSkills.trim(),
+        jobTitle
+      );
       setScreenResult(result);
     } catch (e) {
       console.error(e);
@@ -528,6 +576,43 @@ HR Generalist | FinTech Solutions (2023 - Present)
                         <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(c.status)}`}>
                           {c.status}
                         </span>
+                        {c.status === 'Interviewing' && (
+                          <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-violet-300 font-semibold">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-violet-400 shrink-0" />
+                              {c.interviewDate ? (
+                                <span>{c.interviewDate} {c.interviewTime ? `@ ${c.interviewTime}` : ''}{c.interviewEndTime ? ` - ${c.interviewEndTime}` : ''}</span>
+                              ) : (
+                                <span className="text-slate-500 italic">Not scheduled</span>
+                              )}
+                            </div>
+                            {(() => {
+                              if (c.interviewDate && c.interviewEndTime) {
+                                const endDateTime = new Date(`${c.interviewDate}T${c.interviewEndTime}`);
+                                if (!isNaN(endDateTime.getTime()) && new Date() > endDateTime) {
+                                  return (
+                                    <span className="text-[9px] text-rose-400 font-bold flex items-center gap-0.5">
+                                      <AlertCircle className="w-2.5 h-2.5" /> Window Closed
+                                    </span>
+                                  );
+                                }
+                              }
+                              return null;
+                            })()}
+                          </div>
+                        )}
+                        {c.status === 'Shortlisted' && (
+                          <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-cyan-300 font-semibold">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-cyan-400 shrink-0" />
+                              {c.techInterviewDate ? (
+                                <span>Tech: {c.techInterviewDate} {c.techInterviewTime ? `@ ${c.techInterviewTime}` : ''}{c.techInterviewEndTime ? ` - ${c.techInterviewEndTime}` : ''}</span>
+                              ) : (
+                                <span className="text-slate-500 italic">Tech not scheduled</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 text-right font-medium text-slate-400">
                         {c.interviewReport ? (
@@ -542,26 +627,35 @@ HR Generalist | FinTech Solutions (2023 - Present)
                       <td className="py-3.5 text-right font-medium flex items-center justify-end gap-2">
                         <button
                           onClick={() => setSelectedVettingCand(c)}
-                          className="px-2.5 py-1 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-indigo-500 rounded-lg text-[10px] font-bold transition-all"
+                          className="px-2.5 py-1 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-indigo-500 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
                         >
                           Review & Vet
                         </button>
+                        {(c.status === 'Applied' || c.status === 'Screening') && (
+                          <button
+                            onClick={() => setSelectedScheduleCand(c)}
+                            className="px-2.5 py-1 bg-violet-500/10 hover:bg-violet-600 text-violet-400 hover:text-white border border-violet-500/20 hover:border-violet-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+                            Schedule Interview
+                          </button>
+                        )}
                         {c.status === 'Interviewing' && (
                           <button
                             onClick={() => setSelectedScheduleCand(c)}
-                            className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/20 hover:border-amber-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1"
+                            className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/20 hover:border-amber-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                           >
                             <Clock className="w-3.5 h-3.5" />
-                            AI Interview Timing
+                            {c.interviewDate ? 'Reschedule' : 'AI Interview Timing'}
                           </button>
                         )}
                         {c.status === 'Shortlisted' && (
                           <button
                             onClick={() => setSelectedScheduleCand(c)}
-                            className="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-cyan-500/20 hover:border-cyan-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1"
+                            className="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-cyan-500/20 hover:border-cyan-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                           >
                             <Clock className="w-3.5 h-3.5" />
-                            Schedule 1-to-1 Tech
+                            {c.techInterviewDate ? 'Reschedule Tech' : 'Schedule 1-to-1 Tech'}
                           </button>
                         )}
                       </td>
@@ -719,6 +813,59 @@ HR Generalist | FinTech Solutions (2023 - Present)
                 {/* 1. Job Description block */}
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-wide">1. Job Description (JD)</label>
+
+                  {/* JD Source: Posted Job vs Custom */}
+                  <div className="flex gap-2 mb-3 bg-slate-950 p-1 border border-slate-800 rounded-xl w-fit">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setJdSourceType('select');
+                        const job = getSelectedJob();
+                        if (job) setCustomJdText(buildJobDescription(job));
+                      }}
+                      className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                        jdSourceType === 'select' ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      Select Posted Job
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setJdSourceType('custom')}
+                      className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                        jdSourceType === 'custom' ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      Custom JD
+                    </button>
+                  </div>
+
+                  {jdSourceType === 'select' && (
+                    <div className="mb-3">
+                      <label className="block text-[10px] font-semibold text-slate-500 mb-1.5">Choose open position</label>
+                      <select
+                        value={screenJobId}
+                        onChange={(e) => setScreenJobId(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                      >
+                        {jobs.length === 0 ? (
+                          <option value="">No jobs posted yet</option>
+                        ) : (
+                          jobs.map(j => (
+                            <option key={j.id} value={j.id}>{j.title} — {j.department}</option>
+                          ))
+                        )}
+                      </select>
+                      {customJdText && (
+                        <div className="mt-2 bg-slate-950/50 p-2.5 border border-slate-850 rounded-xl max-h-[100px] overflow-y-auto">
+                          <pre className="text-[9px] text-slate-400 font-mono leading-relaxed whitespace-pre-wrap">{customJdText}</pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {jdSourceType === 'custom' && (
+                  <>
                   <div className="flex gap-2 mb-3 bg-slate-950 p-1 border border-slate-800 rounded-xl w-fit">
                     <button
                       type="button"
@@ -793,10 +940,36 @@ HR Generalist | FinTech Solutions (2023 - Present)
                       )}
                     </div>
                   )}
+                  </>
+                  )}
+
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-wide">2. Candidate Resume</label>
+
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 mb-1">Candidate Name</label>
+                      <input
+                        type="text"
+                        value={screenName}
+                        onChange={(e) => setScreenName(e.target.value)}
+                        placeholder="e.g. Ananya Rao"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={screenEmail}
+                        onChange={(e) => setScreenEmail(e.target.value)}
+                        placeholder="candidate@email.com"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
                   
                   {/* Method Toggle Buttons */}
                   <div className="flex gap-2 mb-3 bg-slate-950 p-1 border border-slate-800 rounded-xl w-fit">
@@ -908,12 +1081,12 @@ HR Generalist | FinTech Solutions (2023 - Present)
                 {isScreening ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    AI Analyzing Resume (Gemini Service)...
+                    Matching Resume vs Job Description...
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 animate-pulse" />
-                    Run AI Screening Check
+                    Run JD ↔ Resume Match Analysis
                   </>
                 )}
               </button>
@@ -929,8 +1102,8 @@ HR Generalist | FinTech Solutions (2023 - Present)
                   <Sparkles className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-indigo-400 w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-slate-200">Gemini Parsing Resume Details</h5>
-                  <p className="text-[10px] text-slate-500 mt-1">Comparing experience benchmarks, checking skill matrix, & predicting fit index</p>
+                  <h5 className="text-sm font-semibold text-slate-200">AI Comparing JD vs Resume</h5>
+                  <p className="text-[10px] text-slate-500 mt-1">Extracting required skills from JD, matching against resume, scoring experience & education fit</p>
                 </div>
               </div>
             ) : screenResult ? (
@@ -938,8 +1111,10 @@ HR Generalist | FinTech Solutions (2023 - Present)
                 <div>
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-200">AI Screening Results</h4>
-                      <p className="text-[10px] text-slate-500">Evaluated Candidate: {screenName}</p>
+                      <h4 className="text-sm font-bold text-slate-200">JD ↔ Resume Match Results</h4>
+                      <p className="text-[10px] text-slate-500">
+                        {screenResult.jobTitle || getSelectedJob()?.title || 'Role'} {screenName ? `• ${screenName}` : ''}
+                      </p>
                     </div>
                     <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                       (screenResult.recommendation === 'Strong Match' || screenResult.recommendation === 'Recommended') ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' :
@@ -967,10 +1142,58 @@ HR Generalist | FinTech Solutions (2023 - Present)
                       </div>
                     </div>
                     <div>
-                      <h5 className="text-xs font-bold text-slate-300">AI Profile Match Score</h5>
-                      <p className="text-[10px] text-slate-400 mt-1">{(screenResult.recommendation === 'Strong Match' || screenResult.recommendation === 'Recommended') ? 'Exceeds standard qualifications. Move candidate to interviews.' : 'Gaps in skills require validation in manual vetting.'}</p>
+                      <h5 className="text-xs font-bold text-slate-300">Overall JD Match Score</h5>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        {screenResult.summary || 'Resume compared against job description requirements.'}
+                      </p>
+                      {screenResult.breakdown && (
+                        <p className="text-[9px] text-indigo-400 mt-1 font-semibold">
+                          Skills: {screenResult.breakdown.skillsMatched}/{screenResult.breakdown.skillsRequired} matched ({screenResult.breakdown.skillMatchRate}%)
+                        </p>
+                      )}
                     </div>
                   </div>
+
+                  {/* Match Breakdown */}
+                  {(screenResult.experienceMatch || screenResult.educationMatch || screenResult.projectsMatch) && (
+                    <div className="grid grid-cols-1 gap-2 py-2">
+                      {[
+                        { label: 'Experience', value: screenResult.experienceMatch },
+                        { label: 'Education', value: screenResult.educationMatch },
+                        { label: 'Projects', value: screenResult.projectsMatch }
+                      ].map(({ label, value }) => value && (
+                        <div key={label} className="flex items-start gap-2 text-[10px]">
+                          <span className="font-bold text-slate-500 uppercase w-20 shrink-0 pt-0.5">{label}</span>
+                          <span className={`px-2 py-0.5 rounded border font-semibold ${getMatchLevelColor(value)}`}>
+                            {value.split('.')[0]}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Score breakdown bars */}
+                  {screenResult.breakdown && (
+                    <div className="bg-slate-950/40 rounded-xl p-3 border border-slate-800/60 space-y-2">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Score Breakdown (ATS Weights)</span>
+                      {[
+                        { label: 'Skills Match', score: screenResult.breakdown.skillsScore, max: 60, color: 'bg-indigo-500' },
+                        { label: 'Experience', score: screenResult.breakdown.experienceScore, max: 20, color: 'bg-violet-500' },
+                        { label: 'Education', score: screenResult.breakdown.educationScore, max: 10, color: 'bg-cyan-500' },
+                        { label: 'Projects', score: screenResult.breakdown.projectsScore, max: 10, color: 'bg-emerald-500' }
+                      ].map(({ label, score, max, color }) => (
+                        <div key={label}>
+                          <div className="flex justify-between text-[9px] text-slate-400 mb-0.5">
+                            <span>{label}</span>
+                            <span className="font-bold">{score}/{max}</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${color}`} style={{ width: `${(score / max) * 100}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Strengths & Weaknesses */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1035,11 +1258,19 @@ HR Generalist | FinTech Solutions (2023 - Present)
                 </div>
 
                 <div className="pt-4 border-t border-slate-800 flex gap-3">
+                  {screenName && screenEmail && (
+                    <button
+                      onClick={handleSaveScreenedCandidate}
+                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl border border-emerald-500 transition-colors"
+                    >
+                      Save to Pipeline
+                    </button>
+                  )}
                   <button
                     onClick={() => setScreenResult(null)}
-                    className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors"
+                    className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors"
                   >
-                    Clear Results & Screen Next
+                    Clear & Screen Next
                   </button>
                 </div>
               </div>
@@ -1047,7 +1278,7 @@ HR Generalist | FinTech Solutions (2023 - Present)
               <div className="flex-1 flex flex-col items-center justify-center text-center py-10 text-slate-500">
                 <FileText className="w-10 h-10 text-slate-750 mb-3" />
                 <h5 className="text-xs font-semibold text-slate-400">Screening Panel Idle</h5>
-                <p className="text-[10px] text-slate-500 max-w-[280px] mt-1">Provide job description and candidate resume (by pasting text or uploading PDF files), then trigger the AI screening check.</p>
+                <p className="text-[10px] text-slate-500 max-w-[280px] mt-1">Select a posted job (or paste custom JD) and upload/paste candidate resume. AI will match JD requirements against resume and generate a fit score.</p>
               </div>
             )}
           </div>
@@ -1230,24 +1461,45 @@ HR Generalist | FinTech Solutions (2023 - Present)
                 )}
                 {/* Interview Scheduling Card */}
                 {isShortlisting && (
-                  <div className="bg-slate-950/40 p-4 border border-slate-850 rounded-2xl space-y-3">
+                  <div className="bg-slate-950/40 p-4 border border-slate-800 rounded-2xl space-y-3">
                     <h5 className="text-xs font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider text-indigo-400">
                       <Clock className="w-3.5 h-3.5" />
                       AI Video Interview Schedule
                     </h5>
                     
-                    <div>
-                      <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">Interview Date</label>
-                      <input
-                        type="date"
-                        value={schDate}
-                        onChange={(e) => setSchDate(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Interview Date</label>
+                        <input
+                          type="date"
+                          value={schDate}
+                          onChange={(e) => setSchDate(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Start Time</label>
+                        <input
+                          type="time"
+                          value={schTime}
+                          onChange={(e) => setSchTime(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">End Time (Access Closes)</label>
+                        <input
+                          type="time"
+                          value={schEndTime}
+                          onChange={(e) => setSchEndTime(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors"
+                        />
+                      </div>
                     </div>
                     {selectedVettingCand.interviewDate && (
-                      <p className="text-[10px] text-emerald-405 font-bold">
-                        Current Schedule: {selectedVettingCand.interviewDate}
+                      <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" />
+                        Current Schedule: {selectedVettingCand.interviewDate} {selectedVettingCand.interviewTime ? `at ${selectedVettingCand.interviewTime}` : ''} {selectedVettingCand.interviewEndTime ? `to ${selectedVettingCand.interviewEndTime}` : ''}
                       </p>
                     )}
                   </div>
@@ -1290,6 +1542,7 @@ HR Generalist | FinTech Solutions (2023 - Present)
                           setIsShortlisting(false);
                           setSchDate('');
                           setSchTime('');
+                          setSchEndTime('');
                         }}
                         className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-750 text-slate-350 text-xs font-bold rounded-xl border border-slate-700 transition-all"
                       >
@@ -1297,12 +1550,16 @@ HR Generalist | FinTech Solutions (2023 - Present)
                       </button>
                       <button
                         onClick={async () => {
-                          if (!schDate) {
-                            alert('Please select the Interview Date.');
+                          if (!schDate || !schTime || !schEndTime) {
+                            alert('Please select Interview Date, Start Time, and End Time.');
+                            return;
+                          }
+                          if (schEndTime <= schTime) {
+                            alert('End Time must be after Start Time.');
                             return;
                           }
                           try {
-                            await apiService.updateCandidateStatus(selectedVettingCand.id, 'Interviewing', schDate, '');
+                            await apiService.updateCandidateStatus(selectedVettingCand.id, 'Interviewing', schDate, schTime, schEndTime);
                             setSelectedVettingCand(null);
                             onTriggerRefresh();
                             alert('Candidate status updated: Shortlisted for AI Video Interview');
@@ -1334,12 +1591,16 @@ HR Generalist | FinTech Solutions (2023 - Present)
                       </button>
                       <button
                         onClick={async () => {
-                          if (!schDate) {
-                            alert('Please select the Interview Date.');
+                          if (!schDate || !schTime || !schEndTime) {
+                            alert('Please select Interview Date, Start Time, and End Time.');
+                            return;
+                          }
+                          if (schEndTime <= schTime) {
+                            alert('End Time must be after Start Time.');
                             return;
                           }
                           try {
-                            await apiService.updateCandidateStatus(selectedVettingCand.id, 'Interviewing', schDate, '');
+                            await apiService.updateCandidateStatus(selectedVettingCand.id, 'Interviewing', schDate, schTime, schEndTime);
                             setSelectedVettingCand(null);
                             onTriggerRefresh();
                             alert('Candidate Interview Rescheduled Successfully.');
@@ -1363,69 +1624,92 @@ HR Generalist | FinTech Solutions (2023 - Present)
       {/* 6. Quick Schedule Interview Modal */}
       {selectedScheduleCand && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-6 shadow-2xl relative">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl relative">
             {/* Header */}
             <div className="flex justify-between items-start border-b border-slate-800 pb-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-200">Schedule Interview</h3>
+                <h3 className="text-sm font-bold text-slate-200">
+                  {selectedScheduleCand.status === 'Shortlisted' ? 'Schedule 1-to-1 Technical Interview' : 'Schedule AI Video Interview'}
+                </h3>
                 <p className="text-[10px] text-indigo-400 font-semibold">{selectedScheduleCand.name} — {selectedScheduleCand.jobTitle}</p>
               </div>
               <button
                 onClick={() => setSelectedScheduleCand(null)}
-                className="text-xs text-slate-500 hover:text-slate-300 font-bold transition-colors"
+                className="text-xs text-slate-500 hover:text-slate-300 font-bold transition-colors cursor-pointer"
               >
                 Cancel
               </button>
             </div>
 
+            {/* Current Schedule Info */}
+            {(selectedScheduleCand.status === 'Shortlisted' ? selectedScheduleCand.techInterviewDate : selectedScheduleCand.interviewDate) && (
+              <div className="p-2.5 bg-slate-950/70 rounded-xl border border-slate-800 flex items-center gap-2 text-xs text-slate-300">
+                <Clock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span>
+                  Current: <strong className="text-slate-200">
+                    {selectedScheduleCand.status === 'Shortlisted'
+                      ? `${selectedScheduleCand.techInterviewDate} ${selectedScheduleCand.techInterviewTime ? `at ${selectedScheduleCand.techInterviewTime}` : ''}${selectedScheduleCand.techInterviewEndTime ? ` - ${selectedScheduleCand.techInterviewEndTime}` : ''}`
+                      : `${selectedScheduleCand.interviewDate} ${selectedScheduleCand.interviewTime ? `at ${selectedScheduleCand.interviewTime}` : ''}${selectedScheduleCand.interviewEndTime ? ` - ${selectedScheduleCand.interviewEndTime}` : ''}`}
+                  </strong>
+                </span>
+              </div>
+            )}
+
             {/* Inputs */}
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <div>
                 <label className="block text-xs font-semibold text-slate-400 mb-1.5">Interview Date</label>
                 <input
                   type="date"
                   value={schDate}
                   onChange={(e) => setSchDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>
-              {selectedScheduleCand.status === 'Shortlisted' && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Interview Time</label>
-                  <input
-                    type="time"
-                    value={schTime}
-                    onChange={(e) => setSchTime(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Start Time</label>
+                <input
+                  type="time"
+                  value={schTime}
+                  onChange={(e) => setSchTime(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5">End Time (Closes)</label>
+                <input
+                  type="time"
+                  value={schEndTime}
+                  onChange={(e) => setSchEndTime(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
             </div>
 
             {/* Actions */}
             <div className="pt-4 border-t border-slate-800 flex gap-3">
               <button
                 onClick={() => setSelectedScheduleCand(null)}
-                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-350 text-xs font-semibold rounded-xl border border-slate-700 transition-colors"
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-350 text-xs font-semibold rounded-xl border border-slate-700 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={async () => {
                   try {
+                    if (!schDate || !schTime || !schEndTime) {
+                      alert('Please select Interview Date, Start Time, and End Time.');
+                      return;
+                    }
+                    if (schEndTime <= schTime) {
+                      alert('End Time must be after Start Time.');
+                      return;
+                    }
                     if (selectedScheduleCand.status === 'Shortlisted') {
-                      if (!schDate || !schTime) {
-                        alert('Please select both Interview Date and Time.');
-                        return;
-                      }
-                      await apiService.updateCandidateStatus(selectedScheduleCand.id, 'Shortlisted', '', '', schDate, schTime);
+                      await apiService.updateCandidateStatus(selectedScheduleCand.id, 'Shortlisted', '', '', '', schDate, schTime, schEndTime);
                       alert('1-to-1 Technical Interview scheduled successfully!');
                     } else {
-                      if (!schDate) {
-                        alert('Please select the Interview Date.');
-                        return;
-                      }
-                      await apiService.updateCandidateStatus(selectedScheduleCand.id, 'Interviewing', schDate, '');
+                      await apiService.updateCandidateStatus(selectedScheduleCand.id, 'Interviewing', schDate, schTime, schEndTime);
                       alert('AI Video Interview scheduled successfully!');
                     }
                     setSelectedScheduleCand(null);
@@ -1434,7 +1718,7 @@ HR Generalist | FinTech Solutions (2023 - Present)
                     alert('Failed to schedule interview.');
                   }
                 }}
-                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-550 text-white text-xs font-semibold rounded-xl border border-indigo-500 shadow-md shadow-indigo-600/10 transition-all hover:scale-[1.01]"
+                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-550 text-white text-xs font-semibold rounded-xl border border-indigo-500 shadow-md shadow-indigo-600/10 transition-all hover:scale-[1.01] cursor-pointer"
               >
                 Save Schedule
               </button>

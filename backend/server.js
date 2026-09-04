@@ -19,10 +19,13 @@ const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 const PORT = process.env.PORT || 5000;
 
+
 // Enable CORS for frontend Vite development server and production/Vercel URLs
 const allowedOrigins = [
-  process.env.FRONTEND_URL
-].filter(Boolean);
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+].filter(Boolean).map(url => url.replace(/\/$/, ''));
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -311,7 +314,7 @@ app.post('/api/candidate/apply', authenticateToken, upload.single('resume'), asy
 });
 
 // --- Recruiter AI Screening & Vetting Endpoints ---
-app.post('/api/candidates/:id/screen', authenticateToken, authorizeRoles('Admin', 'HR Recruiter'), async (req, res) => {
+app.post('/api/candidates/:id/screen', authenticateToken, authorizeRoles('Admin', 'HR Recruiter', 'HR', 'HR Manager'), async (req, res) => {
   try {
     const { id } = req.params;
     const list = await db.getCandidates();
@@ -323,9 +326,12 @@ app.post('/api/candidates/:id/screen', authenticateToken, authorizeRoles('Admin'
     const { Candidate: CandidateModel, Job: JobModel } = await import('./db/models.js');
     const candidate = await CandidateModel.findOne({ id });
     const job = await JobModel.findOne({ id: candidate.jobId });
-    const jobDescStr = job ? `${job.title} - ${job.description}` : 'General Role';
+    const jobDescStr = job
+      ? `Job Title: ${job.title}\nDepartment: ${job.department}\nLocation: ${job.location}\nType: ${job.type}\n\nJob Description:\n${job.description}`
+      : 'General Role';
+    const jobTitle = job ? job.title : candidate.jobTitle || '';
 
-    const result = await geminiService.screenResume(jobDescStr, candidate.resumeText, candidate.skills);
+    const result = await geminiService.screenResume(jobDescStr, candidate.resumeText, candidate.skills, jobTitle);
 
     candidate.matchScore = result.matchScore;
     candidate.evaluation = result;
@@ -343,7 +349,7 @@ app.post('/api/candidates/:id/screen', authenticateToken, authorizeRoles('Admin'
   }
 });
 
-app.post('/api/candidates/parse-resume', authenticateToken, authorizeRoles('Admin', 'HR Recruiter'), upload.single('resume'), async (req, res) => {
+app.post('/api/candidates/parse-resume', authenticateToken, authorizeRoles('Admin', 'HR Recruiter', 'HR', 'HR Manager'), upload.single('resume'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No PDF file uploaded.' });
@@ -366,10 +372,10 @@ app.post('/api/candidates/parse-resume', authenticateToken, authorizeRoles('Admi
   }
 });
 
-app.put('/api/candidates/:id/status', authenticateToken, authorizeRoles('Admin', 'HR Recruiter'), async (req, res) => {
+app.put('/api/candidates/:id/status', authenticateToken, authorizeRoles('Admin', 'HR Recruiter', 'HR', 'HR Manager'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, interviewDate, interviewTime, techInterviewDate, techInterviewTime } = req.body;
+    const { status, interviewDate, interviewTime, interviewEndTime, techInterviewDate, techInterviewTime, techInterviewEndTime } = req.body;
     if (!['Applied', 'Screening', 'Interviewing', 'Shortlisted', 'Rejected', 'Offered', 'Hired'].includes(status)) {
       return res.status(400).json({ error: 'Invalid candidate status.' });
     }
@@ -383,8 +389,10 @@ app.put('/api/candidates/:id/status', authenticateToken, authorizeRoles('Admin',
     candidate.status = status;
     if (interviewDate !== undefined) candidate.interviewDate = interviewDate;
     if (interviewTime !== undefined) candidate.interviewTime = interviewTime;
+    if (interviewEndTime !== undefined) candidate.interviewEndTime = interviewEndTime;
     if (techInterviewDate !== undefined) candidate.techInterviewDate = techInterviewDate;
     if (techInterviewTime !== undefined) candidate.techInterviewTime = techInterviewTime;
+    if (techInterviewEndTime !== undefined) candidate.techInterviewEndTime = techInterviewEndTime;
     await candidate.save();
 
     res.json(candidate.toObject());
@@ -671,7 +679,7 @@ app.delete('/api/jobs/:id', authenticateToken, authorizeRoles('Admin', 'HR Recru
 });
 
 // 5. Candidates Management
-app.get('/api/candidates', authenticateToken, authorizeRoles('Admin', 'HR Recruiter'), async (req, res) => {
+app.get('/api/candidates', authenticateToken, authorizeRoles('Admin', 'HR Recruiter', 'HR', 'HR Manager'), async (req, res) => {
   try {
     res.json(await db.getCandidates());
   } catch (e) {
@@ -694,7 +702,7 @@ app.post('/api/candidates', async (req, res) => {
   }
 });
 
-app.put('/api/candidates/:id/evaluation', authenticateToken, authorizeRoles('Admin', 'HR Recruiter'), async (req, res) => {
+app.put('/api/candidates/:id/evaluation', authenticateToken, authorizeRoles('Admin', 'HR Recruiter', 'HR', 'HR Manager'), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, matchScore, evaluation } = req.body;
@@ -709,7 +717,7 @@ app.put('/api/candidates/:id/evaluation', authenticateToken, authorizeRoles('Adm
   }
 });
 
-app.put('/api/candidates/:id/interview-report', authenticateToken, authorizeRoles('Admin', 'HR Recruiter', 'Candidate'), async (req, res) => {
+app.put('/api/candidates/:id/interview-report', authenticateToken, authorizeRoles('Admin', 'HR Recruiter', 'HR', 'HR Manager', 'Candidate'), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, matchScore, interviewReport } = req.body;
@@ -736,12 +744,12 @@ app.get('/api/policies', authenticateToken, async (req, res) => {
 // --- AI Service SECURE Proxies ---
 app.post('/api/ai/screen', authenticateToken, authorizeRoles('Admin', 'HR Recruiter'), async (req, res) => {
   try {
-    const { jobDescription, resumeText, skills } = req.body;
+    const { jobDescription, resumeText, skills, jobTitle } = req.body;
     if (!jobDescription || !resumeText) {
       return res.status(400).json({ error: 'Missing jobDescription or resumeText' });
     }
 
-    const result = await geminiService.screenResume(jobDescription, resumeText, skills || '');
+    const result = await geminiService.screenResume(jobDescription, resumeText, skills || '', jobTitle || '');
     res.json(result);
   } catch (e) {
     res.status(500).json({ error: 'AI Resume screening failed' });
@@ -753,6 +761,18 @@ app.post('/api/ai/interview/question', authenticateToken, authorizeRoles('Admin'
     const { jobTitle, currentRound, history, resumeText } = req.body;
     if (!jobTitle || !currentRound || !history) {
       return res.status(400).json({ error: 'Missing question generation params' });
+    }
+
+    // If candidate role, verify interview has not expired
+    if (req.user && req.user.role === 'Candidate') {
+      const { Candidate: CandidateModel } = await import('./db/models.js');
+      const cand = await CandidateModel.findOne({ email: req.user.email.toLowerCase(), jobTitle });
+      if (cand && cand.interviewDate && cand.interviewEndTime) {
+        const endDateTime = new Date(`${cand.interviewDate}T${cand.interviewEndTime}`);
+        if (!isNaN(endDateTime.getTime()) && new Date() > endDateTime) {
+          return res.status(403).json({ error: 'Interview access expired: The scheduled interview window has ended. Please contact HR.' });
+        }
+      }
     }
 
     const question = await geminiService.getNextInterviewQuestion(jobTitle, currentRound, history, resumeText || '');

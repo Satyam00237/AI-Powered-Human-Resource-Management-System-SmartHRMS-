@@ -219,11 +219,11 @@ export const apiService = {
   },
 
   // --- AI secure proxies ---
-  async screenResume(jobDescription, resumeText, skills = '') {
+  async screenResume(jobDescription, resumeText, skills = '', jobTitle = '') {
     const res = await fetch(`${API_BASE}/ai/screen`, {
       method: 'POST',
       headers: getAuthHeaders('application/json'),
-      body: JSON.stringify({ jobDescription, resumeText, skills })
+      body: JSON.stringify({ jobDescription, resumeText, skills, jobTitle })
     });
     return handleResponse(res);
   },
@@ -370,12 +370,23 @@ export const apiService = {
     return handleResponse(res);
   },
 
-  async updateCandidateStatus(candidateId, status, interviewDate = '', interviewTime = '', techInterviewDate = '', techInterviewTime = '') {
+  async updateCandidateStatus(
+    candidateId,
+    status,
+    interviewDate = undefined,
+    interviewTime = undefined,
+    interviewEndTime = undefined,
+    techInterviewDate = undefined,
+    techInterviewTime = undefined,
+    techInterviewEndTime = undefined
+  ) {
     const payload = { status };
-    if (interviewDate) payload.interviewDate = interviewDate;
-    if (interviewTime) payload.interviewTime = interviewTime;
-    if (techInterviewDate) payload.techInterviewDate = techInterviewDate;
-    if (techInterviewTime) payload.techInterviewTime = techInterviewTime;
+    if (interviewDate !== undefined) payload.interviewDate = interviewDate;
+    if (interviewTime !== undefined) payload.interviewTime = interviewTime;
+    if (interviewEndTime !== undefined) payload.interviewEndTime = interviewEndTime;
+    if (techInterviewDate !== undefined) payload.techInterviewDate = techInterviewDate;
+    if (techInterviewTime !== undefined) payload.techInterviewTime = techInterviewTime;
+    if (techInterviewEndTime !== undefined) payload.techInterviewEndTime = techInterviewEndTime;
     const res = await fetch(`${API_BASE}/candidates/${candidateId}/status`, {
       method: 'PUT',
       headers: getAuthHeaders('application/json'),
@@ -383,6 +394,8 @@ export const apiService = {
     });
     return handleResponse(res);
   },
+
+
 
   async updateEmployee(id, empData) {
     const res = await fetch(`${API_BASE}/employees/${id}`, {

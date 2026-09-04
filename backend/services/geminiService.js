@@ -5,9 +5,10 @@ import { db } from '../db/dbConnector.js';
 dotenv.config();
 
 // Helper to initialize Gemini API using process environment variable or database settings
-const getGeminiClient = () => {
-  const key = process.env.GEMINI_API_KEY || db.getGeminiKey();
-  if (!key) return null;
+const getGeminiClient = async () => {
+  const dbKey = await db.getGeminiKey();
+  const key = process.env.GEMINI_API_KEY || dbKey;
+  if (!key || typeof key !== 'string') return null;
   try {
     return new GoogleGenerativeAI(key);
   } catch (error) {
@@ -206,7 +207,16 @@ const calculateATSScore = (rawRequiredSkills, rawCandidateSkills, experienceMatc
     matchPercentage,
     matchedSkills,
     missingSkills,
-    recommendation
+    recommendation,
+    breakdown: {
+      skillsScore: Math.round(skillsScore),
+      experienceScore,
+      educationScore,
+      projectsScore,
+      skillsMatched: matchedSkills.length,
+      skillsRequired: reqSkills.length,
+      skillMatchRate: reqSkills.length > 0 ? Math.round((matchedSkills.length / reqSkills.length) * 100) : 0
+    }
   };
 };
 
@@ -214,46 +224,60 @@ export const geminiService = {
   /**
    * AI Resume Screening based on strict JD criteria weights
    */
-  async screenResume(jobDescription, resumeText, skills = '') {
-    const genAI = getGeminiClient();
+  async screenResume(jobDescription, resumeText, skills = '', jobTitle = '') {
+    const genAI = await getGeminiClient();
     
     if (!genAI) {
       console.log('Gemini API Key missing on backend. Running in simulated fallback mode.');
       await new Promise(resolve => setTimeout(resolve, 2000));
-      return this.mockScreenResume(jobDescription, resumeText, skills);
+      return this.mockScreenResume(jobDescription, resumeText, skills, jobTitle);
     }
 
     try {
       const prompt = `
-        You are an AI Recruitment Assistant.
-        Your task is to compare a candidate's resume against the Job Description and extract technical skills, experience details, education compatibility, and project relevancy.
+        You are an expert ATS (Applicant Tracking System) recruiter.
+        Compare the CANDIDATE RESUME against the JOB DESCRIPTION and determine how well the candidate fits this specific role.
 
-        Rules for extraction:
-        1. Do NOT calculate the matching score yourself.
-        2. Never infer domain skills from candidate project names, application titles, or website creations. E.g., if a candidate has a project named "HR Management System", do NOT infer that they have "HR", "Human Resources", "Recruitment", "Payroll", or "Onboarding" skills. If they built a "Recruitment Platform", do NOT infer they have "Talent Acquisition" or "Recruitment" skills. If they built a "Payroll Application", do NOT infer "Payroll" expertise. Only extract skills if the candidate has explicit work experience, certifications, or has listed them in their skills section.
-        3. Ignore generic words such as: Project, Product, Team, Development, System, Application, Technology, Software.
-        4. Extract the required skills list strictly from the Job Description.
-        5. Extract candidate skills from BOTH the resume text and the explicit skills field provided below.
-        6. Extract only explicit, technical domain skills.
+        Your job is ONLY to extract and analyze — do NOT calculate the final match percentage yourself.
+
+        Step-by-step analysis:
+        1. Read the Job Description carefully. Extract every required technical skill, tool, framework, and domain requirement.
+        2. Read the Candidate Resume. Extract only skills the candidate explicitly demonstrates via work experience, projects (with context), certifications, or a skills section.
+        3. Compare experience level: Does the candidate's years of experience and role titles align with what the JD asks for?
+        4. Compare education: Does the candidate's degree/certifications match JD requirements?
+        5. Compare projects/work: Are the candidate's past projects relevant to this JD's domain and tech stack?
+
+        Strict rules:
+        - Do NOT infer skills from project/app names alone (e.g. "HR Management System" does NOT mean HR/recruitment skills).
+        - Ignore generic words: Project, Product, Team, Development, System, Application, Technology, Software.
+        - requiredSkills must come ONLY from the Job Description.
+        - candidateSkills must come ONLY from explicit evidence in the resume or skills field.
 
         Provide the output strictly in JSON format matching this schema:
         {
-          "requiredSkills": [string], // List of technical skills required in the Job Description
-          "candidateSkills": [string], // List of explicit candidate skills found in resume or provided list
-          "experienceMatch": string, // "Strong Match" | "Moderate Match" | "Weak Match" plus explanation
-          "educationMatch": string, // "Strong Match" | "Moderate Match" | "Weak Match" plus explanation
-          "projectsMatch": string, // "Strong Match" | "Moderate Match" | "Weak Match" plus explanation
+          "requiredSkills": [string],
+          "candidateSkills": [string],
+          "experienceMatch": string,
+          "educationMatch": string,
+          "projectsMatch": string,
           "strengths": [string],
           "weaknesses": [string],
           "summary": string
         }
-        Respond ONLY with the JSON. Do not include markdown code block syntax. Just raw JSON.
 
+        experienceMatch, educationMatch, and projectsMatch must each start with exactly one of:
+        "Strong Match", "Moderate Match", or "Weak Match" followed by a brief explanation.
+
+        summary must be 2-3 sentences explaining overall JD-to-resume fit for the recruiter.
+
+        Respond ONLY with raw JSON. No markdown.
+
+        ${jobTitle ? `JOB TITLE: ${jobTitle}\n` : ''}
         JOB DESCRIPTION:
         ${jobDescription}
 
         CANDIDATE SKILLS FIELD:
-        ${skills || "Not explicitly listed"}
+        ${skills || 'Not explicitly listed'}
 
         CANDIDATE RESUME:
         ${resumeText}
@@ -275,24 +299,26 @@ export const geminiService = {
 
       return {
         matchPercentage: scoreData.matchPercentage,
-        matchScore: scoreData.matchPercentage, // compatibility
+        matchScore: scoreData.matchPercentage,
         matchedSkills: scoreData.matchedSkills,
         missingSkills: scoreData.missingSkills,
         strengths: parsed.strengths || [],
         weaknesses: parsed.weaknesses || [],
-        experienceMatch: parsed.experienceMatch || "",
-        educationMatch: parsed.educationMatch || "",
-        projectsMatch: parsed.projectsMatch || "",
-        summary: parsed.summary || `ATS Summary: Match percentage is ${scoreData.matchPercentage}%. Matched: ${scoreData.matchedSkills.join(', ') || 'None'}. Missing: ${scoreData.missingSkills.join(', ') || 'None'}.`,
-        recommendation: scoreData.recommendation
+        experienceMatch: parsed.experienceMatch || '',
+        educationMatch: parsed.educationMatch || '',
+        projectsMatch: parsed.projectsMatch || '',
+        summary: parsed.summary || `Candidate matches ${scoreData.breakdown.skillsMatched}/${scoreData.breakdown.skillsRequired} required skills (${scoreData.breakdown.skillMatchRate}%). Overall fit score: ${scoreData.matchPercentage}%.`,
+        recommendation: scoreData.recommendation,
+        breakdown: scoreData.breakdown,
+        jobTitle: jobTitle || ''
       };
     } catch (e) {
       console.warn('Backend Gemini API resume screening error, falling back to mock screen:', e);
-      return this.mockScreenResume(jobDescription, resumeText, skills);
+      return this.mockScreenResume(jobDescription, resumeText, skills, jobTitle);
     }
   },
 
-  mockScreenResume(jobDesc, resumeText, skills = '') {
+  mockScreenResume(jobDesc, resumeText, skills = '', jobTitle = '') {
     const cleanText = (text) => (text || '').toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, ' ');
 
     const descLower = cleanText(jobDesc);
@@ -434,7 +460,7 @@ export const geminiService = {
 
     return {
       matchPercentage: scoreData.matchPercentage,
-      matchScore: scoreData.matchPercentage, // compatibility
+      matchScore: scoreData.matchPercentage,
       matchedSkills: scoreData.matchedSkills,
       missingSkills: scoreData.missingSkills,
       strengths,
@@ -442,8 +468,10 @@ export const geminiService = {
       experienceMatch,
       educationMatch,
       projectsMatch,
-      summary: `ATS Summary: Match percentage is ${scoreData.matchPercentage}%. Matched: ${scoreData.matchedSkills.join(', ') || 'None'}. Missing: ${scoreData.missingSkills.join(', ') || 'None'}.`,
-      recommendation: scoreData.recommendation
+      summary: `Resume vs JD analysis: ${scoreData.breakdown.skillsMatched}/${scoreData.breakdown.skillsRequired} required skills matched (${scoreData.breakdown.skillMatchRate}%). Overall match score: ${scoreData.matchPercentage}%.`,
+      recommendation: scoreData.recommendation,
+      breakdown: scoreData.breakdown,
+      jobTitle: jobTitle || ''
     };
   },
 
@@ -451,7 +479,7 @@ export const geminiService = {
    * AI Recruitment Voice Interviewer - Get Next Question
    */
   async getNextInterviewQuestion(jobTitle, currentRound, history, resumeText = '') {
-    const genAI = getGeminiClient();
+    const genAI = await getGeminiClient();
     
     if (!genAI) {
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -518,7 +546,7 @@ export const geminiService = {
    * AI Recruitment Voice Interviewer - Evaluate Interview Answers
    */
   async evaluateInterview(jobTitle, history) {
-    const genAI = getGeminiClient();
+    const genAI = await getGeminiClient();
     
     if (!genAI) {
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -605,7 +633,7 @@ export const geminiService = {
    * AI HR Assistant Q&A Chatbot (Context & Role Sensitive)
    */
   async askHRAssistant(question, context) {
-    const genAI = getGeminiClient();
+    const genAI = await getGeminiClient();
     
     if (!genAI) {
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -884,7 +912,7 @@ export const geminiService = {
     let aiSummary = "";
 
     try {
-      const genAI = getGeminiClient();
+      const genAI = await getGeminiClient();
       if (!genAI) throw new Error("Gemini client is not initialized");
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
