@@ -478,13 +478,13 @@ app.get('/api/employees/me', authenticateToken, async (req, res) => {
   }
 });
 
-// app.get('/api/employees', authenticateToken, authorizeRoles('Admin', 'Senior Manager'), async (req, res) => {
-//   try {
-//     res.json(await db.getEmployees());
-//   } catch (e) {
-//     res.status(500).json({ error: 'Failed to fetch employees' });
-//   }
-// });
+app.get('/api/employees', authenticateToken, authorizeRoles('Admin', 'Senior Manager'), async (req, res) => {
+  try {
+    res.json(await db.getEmployees());
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch employees' });
+  }
+});
 
 app.post('/api/employees', authenticateToken, authorizeRoles('Admin'), async (req, res) => {
   try {
