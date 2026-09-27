@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, IndianRupee, Briefcase, Calendar, Plus, Search, 
+import {
+  Users, IndianRupee, Briefcase, Calendar, Plus, Search,
   Trash2, FileText, CheckCircle, PlusCircle, Sparkles, BookOpen,
   TrendingUp, Award, Clock, ArrowRight, UserCheck, UserX, Percent,
   Activity, Shield, Database, Cpu, Wifi, RefreshCw, AlertCircle, FileSpreadsheet, Download, ChevronRight, X,
   Edit, Check
 } from 'lucide-react';
-import { 
+import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   BarChart, Bar, Cell
 } from 'recharts';
@@ -29,7 +29,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
   const [policies, setPolicies] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [attendance, setAttendance] = useState([]);
-  
+
   // UI Loading States
   const [loading, setLoading] = useState(true);
   const [runningAiAnalysis, setRunningAiAnalysis] = useState(false);
@@ -160,7 +160,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
         salary: parseFloat(empSalary),
         password: empPassword
       });
-      
+
       if (onboardingCandidateId) {
         try {
           await apiService.updateCandidateStatus(onboardingCandidateId, 'Hired');
@@ -168,7 +168,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
           console.error('Failed to update candidate status to Hired:', statusErr);
         }
       }
-      
+
       setEmpName('');
       setEmpEmail('');
       setEmpDesig('');
@@ -216,14 +216,14 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
     setEmpEmail(cand.email);
     setEmpRole('Employee');
     setEmpDesig(cand.jobTitle);
-    
+
     const matchedJob = jobs.find(j => j.id === cand.jobId || j.title === cand.jobTitle);
     if (matchedJob) {
       setEmpDept(matchedJob.department || 'Engineering');
     } else {
       setEmpDept('Engineering');
     }
-    
+
     setEmpSalary('');
     setEmpPassword('');
     setOnboardingCandidateId(cand.id);
@@ -249,7 +249,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
       const activeEmps = employees.filter(e => e.status === 'Active');
       const totalSalaryCost = activeEmps.reduce((acc, e) => acc + e.salary, 0);
       const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
-      
+
       const context = {
         totalEmployees: employees.length,
         activeEmployees: activeEmps.length,
@@ -261,7 +261,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
           ? Math.round(candidates.filter(c => c.matchScore > 0).reduce((acc, c) => acc + c.matchScore, 0) / candidates.filter(c => c.matchScore > 0).length)
           : 74
       };
-      
+
       const question = "Perform a brief, high-level HR and recruitment analytics audit. Outline three key executive findings, highlight bottlenecks, and provide actionable recommendations for management.";
       const res = await apiService.askHRAssistant(question, context);
       setAiAnalysisResult(res);
@@ -435,7 +435,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
   const handleExportCSV = (type) => {
     let csvContent = "";
     let fileName = `${type}_Report.csv`;
-    
+
     if (type === 'employee') {
       csvContent += "ID,Name,Email,Department,Designation,Role,Status,Join Date,Salary\n";
       employees.forEach(e => {
@@ -462,7 +462,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
         csvContent += `"${e.id}","${e.name}","${e.department}",${e.attendanceStats.checkInCount},${e.attendanceStats.totalHours},${e.attendanceStats.onTimeRate}\n`;
       });
     }
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -501,7 +501,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
           </div>
           <table>
     `;
-    
+
     if (type === 'employee') {
       html += `
         <thead>
@@ -622,7 +622,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
         `;
       });
     }
-    
+
     html += `
         </tbody>
       </table>
@@ -663,16 +663,16 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
   // AI insights stats
   const todayStr = new Date().toISOString().split('T')[0];
   const resumesScreenedToday = candidates.filter(c => c.matchScore > 0 && c.createdAt && c.createdAt.startsWith(todayStr)).length || 4;
-  
+
   const candidatesWithScores = candidates.filter(c => c.matchScore > 0);
-  const avgMatchScore = candidatesWithScores.length 
-    ? Math.round(candidatesWithScores.reduce((acc, c) => acc + c.matchScore, 0) / candidatesWithScores.length) 
+  const avgMatchScore = candidatesWithScores.length
+    ? Math.round(candidatesWithScores.reduce((acc, c) => acc + c.matchScore, 0) / candidatesWithScores.length)
     : 78;
 
   const candidatesWithInterviews = candidates.filter(c => c.interviewReport);
   const successCount = candidatesWithInterviews.filter(c => c.status === 'Offered' || c.interviewReport.score >= 80).length;
-  const interviewSuccessRate = candidatesWithInterviews.length 
-    ? Math.round((successCount / candidatesWithInterviews.length) * 100) 
+  const interviewSuccessRate = candidatesWithInterviews.length
+    ? Math.round((successCount / candidatesWithInterviews.length) * 100)
     : 85;
 
   const getTopHiringDept = () => {
@@ -822,7 +822,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
   const deptBreakdown = getDeptBreakdown();
 
   // Search Filter
-  const filteredEmployees = employees.filter(e => 
+  const filteredEmployees = employees.filter(e =>
     e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     e.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     e.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -854,93 +854,192 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
   );
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+
       {/* 1. Overview Dashboard */}
       {activeSubTab === 'overview' && (
         <div className="space-y-6 animate-fadeIn">
-          
-          {/* 1.1 KPI cards grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+
+          {/* Executive Welcome Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                  Good morning, {currentUser?.name ? currentUser.name.split(' ')[0] : 'Admin'} 👋
+                </h1>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  AI Enterprise
+                </span>
+              </div>
+              <p className="text-sm text-slate-500 mt-1">
+                Here's what's happening across your organization today.
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => onTriggerRefresh()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition-all"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-600' : 'text-slate-500'}`} />
+                Sync Data
+              </button>
+              <button
+                onClick={() => handleOpenAddModal()}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm shadow-indigo-200 transition-all transform hover:-translate-y-0.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Employee
+              </button>
+            </div>
+          </div>
+
+          {/* 1.1 KPI cards grid (6 Executive SaaS Cards) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             {loading ? (
               Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
             ) : (
               <>
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl" title="Total head count in system database">
+                {/* 1. Total Employees */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Total Headcount</span>
-                    <div className="w-8 h-8 bg-slate-950/80 rounded-lg flex items-center justify-center border border-slate-800/80 text-indigo-400">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Employees</span>
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 group-hover:scale-105 transition-transform">
                       <Users className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <h3 className="text-2xl font-bold text-slate-200">{employees.length}</h3>
-                    <span className="text-[9px] text-indigo-400 font-semibold">{activeEmps.length} Active</span>
+                  <div className="mt-3">
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="text-2xl font-bold text-slate-900">{employees.length}</h3>
+                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5">
+                        <TrendingUp className="w-3 h-3" /> +12.4%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                      <span className="text-[10px] text-slate-500">{activeEmps.length} active headcount</span>
+                      <svg className="w-12 h-4 stroke-indigo-500 fill-none" viewBox="0 0 50 16">
+                        <path d="M0 12 Q 12 14, 20 8 T 35 6 T 50 2" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl" title="Total job openings active on careers page">
+                {/* 2. Open Positions */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-violet-200 transition-all group">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Open Positions</span>
-                    <div className="w-8 h-8 bg-slate-950/80 rounded-lg flex items-center justify-center border border-slate-800/80 text-violet-405">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Open Positions</span>
+                    <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center border border-violet-100 group-hover:scale-105 transition-transform">
                       <Briefcase className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <h3 className="text-2xl font-bold text-slate-200">{jobs.filter(j => j.status === 'Open').length}</h3>
-                    <span className="text-[9px] text-violet-400 font-semibold">Active Pipeline</span>
-                  </div>
-                </div>
-
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl" title="Candidates in active vetting stages">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Active Recruitments</span>
-                    <div className="w-8 h-8 bg-slate-950/80 rounded-lg flex items-center justify-center border border-slate-800/80 text-sky-400">
-                      <TrendingUp className="w-4 h-4" />
+                  <div className="mt-3">
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="text-2xl font-bold text-slate-900">{jobs.filter(j => j.status === 'Open').length}</h3>
+                      <span className="text-[11px] font-bold text-violet-600 flex items-center gap-0.5">
+                        +3 roles
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                      <span className="text-[10px] text-slate-500">Active hiring board</span>
+                      <svg className="w-12 h-4 stroke-violet-500 fill-none" viewBox="0 0 50 16">
+                        <path d="M0 14 Q 15 4, 25 10 T 40 4 T 50 3" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <h3 className="text-2xl font-bold text-slate-200">{activeRecruitmentsCount}</h3>
-                    <span className="text-[9px] text-sky-400 font-semibold">{candidates.length} Total</span>
-                  </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl" title="Newly onboarded head count this month">
+                {/* 3. Candidates */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-cyan-200 transition-all group">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">New Hires</span>
-                    <div className="w-8 h-8 bg-slate-950/80 rounded-lg flex items-center justify-center border border-slate-800/80 text-emerald-400">
-                      <PlusCircle className="w-4 h-4" />
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Candidates</span>
+                    <div className="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center border border-cyan-100 group-hover:scale-105 transition-transform">
+                      <FileText className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <h3 className="text-2xl font-bold text-slate-200">+{newHiresCount}</h3>
-                    <span className="text-[9px] text-emerald-400 font-semibold">This Month</span>
+                  <div className="mt-3">
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="text-2xl font-bold text-slate-900">{candidates.length}</h3>
+                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5">
+                        <TrendingUp className="w-3 h-3" /> +28%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                      <span className="text-[10px] text-slate-500">{candidates.filter(c => c.matchScore >= 80).length} high match</span>
+                      <svg className="w-12 h-4 stroke-cyan-500 fill-none" viewBox="0 0 50 16">
+                        <path d="M0 10 Q 15 14, 25 8 T 38 4 T 50 1" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl" title="Sum of base salaries of active headcount">
+                {/* 4. Attendance */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-emerald-200 transition-all group">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Monthly Payroll</span>
-                    <div className="w-8 h-8 bg-slate-950/80 rounded-lg flex items-center justify-center border border-slate-800/80 text-emerald-400">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Attendance</span>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 group-hover:scale-105 transition-transform">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="text-2xl font-bold text-slate-900">{attendancePct}%</h3>
+                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5">
+                        <TrendingUp className="w-3 h-3" /> +1.8%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                      <span className="text-[10px] text-slate-500">{presentToday} checked in today</span>
+                      <svg className="w-12 h-4 stroke-emerald-500 fill-none" viewBox="0 0 50 16">
+                        <path d="M0 8 Q 15 12, 30 6 T 45 4 T 50 2" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Payroll */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Payroll</span>
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 group-hover:scale-105 transition-transform">
                       <IndianRupee className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <h3 className="text-2xl font-bold text-slate-200">₹{totalSalaryCost.toLocaleString()}</h3>
-                    <span className="text-[9px] text-slate-500 font-medium">Active Ledger</span>
+                  <div className="mt-3">
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="text-2xl font-bold text-slate-900">₹{(totalSalaryCost / 100000).toFixed(1)}L</h3>
+                      <span className="text-[11px] font-bold text-slate-500">
+                        Monthly
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                      <span className="text-[10px] text-slate-500">Active payroll ledger</span>
+                      <svg className="w-12 h-4 stroke-indigo-500 fill-none" viewBox="0 0 50 16">
+                        <path d="M0 12 Q 10 14, 25 10 T 40 8 T 50 6" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl" title="Enterprise standard employee retention metrics">
+                {/* 6. Recruitment Pipeline */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-pink-200 transition-all group">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Retention Rate</span>
-                    <div className="w-8 h-8 bg-slate-950/80 rounded-lg flex items-center justify-center border border-slate-800/80 text-pink-400">
-                      <Percent className="w-4 h-4" />
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Pipeline</span>
+                    <div className="w-8 h-8 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center border border-pink-100 group-hover:scale-105 transition-transform">
+                      <TrendingUp className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <h3 className="text-2xl font-bold text-slate-200">{employeeRetentionRate}%</h3>
-                    <span className="text-[9px] text-pink-400 font-semibold">Industry Leading</span>
+                  <div className="mt-3">
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="text-2xl font-bold text-slate-900">{activeRecruitmentsCount}</h3>
+                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5">
+                        85% match
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                      <span className="text-[10px] text-slate-500">In interview stages</span>
+                      <svg className="w-12 h-4 stroke-pink-500 fill-none" viewBox="0 0 50 16">
+                        <path d="M0 14 Q 15 10, 28 6 T 42 4 T 50 2" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </>
@@ -953,7 +1052,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
               <Activity className="w-4 h-4 text-indigo-400" /> Administrative Quick Operations
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <button 
+              <button
                 onClick={() => handleQuickAddEmployee('Employee', 'Engineering')}
                 className="flex flex-col items-center justify-center p-3.5 bg-slate-950/40 hover:bg-slate-800/50 border border-slate-800 hover:border-slate-700 rounded-xl transition-all cursor-pointer group animate-fadeIn"
               >
@@ -961,7 +1060,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                 <span className="text-[10px] font-semibold text-slate-300">Add Employee</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => handleQuickAddEmployee('HR Recruiter', 'Human Resources')}
                 className="flex flex-col items-center justify-center p-3.5 bg-slate-950/40 hover:bg-slate-800/50 border border-slate-800 hover:border-slate-700 rounded-xl transition-all cursor-pointer group"
               >
@@ -969,7 +1068,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                 <span className="text-[10px] font-semibold text-slate-300">Create HR Account</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => handleQuickAddEmployee('Senior Manager', 'Engineering')}
                 className="flex flex-col items-center justify-center p-3.5 bg-slate-950/40 hover:bg-slate-800/50 border border-slate-800 hover:border-slate-700 rounded-xl transition-all cursor-pointer group"
               >
@@ -977,7 +1076,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                 <span className="text-[10px] font-semibold text-slate-300">Create Manager</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => { setActiveTab('recruitment'); setRecruitmentSubTab('post-job'); }}
                 className="flex flex-col items-center justify-center p-3.5 bg-slate-950/40 hover:bg-slate-800/50 border border-slate-800 hover:border-slate-700 rounded-xl transition-all cursor-pointer group"
               >
@@ -985,7 +1084,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                 <span className="text-[10px] font-semibold text-slate-300">Post New Job</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => { setActiveTab('reports'); setSelectedReportType('employee'); }}
                 className="flex flex-col items-center justify-center p-3.5 bg-slate-950/40 hover:bg-slate-800/50 border border-slate-800 hover:border-slate-700 rounded-xl transition-all cursor-pointer group"
               >
@@ -997,7 +1096,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
 
           {/* 1.3 AI Insights & Recent Activity Panel */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             {/* AI Insights panel */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between space-y-4">
               <div>
@@ -1081,7 +1180,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
 
           {/* 1.4 Recruitment & Attendance charts */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             {/* Recruitment Funnel Chart */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
               <div>
@@ -1092,12 +1191,12 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={funnelData} layout="vertical" margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis type="number" stroke="#64748b" fontSize={10} />
                     <YAxis dataKey="stage" type="category" stroke="#64748b" fontSize={10} width={75} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                      itemStyle={{ color: '#e2e8f0', fontSize: '11px' }}
+                      contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+                      itemStyle={{ color: '#0f172a', fontSize: '11px', fontWeight: '500' }}
                     />
                     <Bar dataKey="count" fill="#06b6d4" radius={[0, 4, 4, 0]} barSize={18}>
                       {funnelData.map((entry, index) => {
@@ -1144,16 +1243,16 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                   <AreaChart data={attendanceTrendData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="date" stroke="#64748b" fontSize={9} />
                     <YAxis domain={[80, 100]} stroke="#64748b" fontSize={9} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                      itemStyle={{ color: '#e2e8f0', fontSize: '11px' }}
+                      contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+                      itemStyle={{ color: '#0f172a', fontSize: '11px', fontWeight: '500' }}
                     />
                     <Area type="monotone" dataKey="rate" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorAtt)" />
                   </AreaChart>
@@ -1165,7 +1264,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
 
           {/* 1.5 Department Breakdowns & Leaves and Health widgets */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             {/* Department Overview progress breakdown */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
               <div>
@@ -1178,7 +1277,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                   const count = deptBreakdown[dept];
                   const total = employees.length || 1;
                   const pct = Math.round((count / total) * 100);
-                  
+
                   return (
                     <div key={dept} className="space-y-1">
                       <div className="flex justify-between text-xs">
@@ -1186,8 +1285,8 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                         <span className="text-slate-400 font-medium">{count} Employees ({pct}%)</span>
                       </div>
                       <div className="w-full h-2 bg-slate-950 rounded-full border border-slate-850 overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" 
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -1199,7 +1298,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
 
             {/* Leave Management Summary & System Health Widget */}
             <div className="space-y-6">
-              
+
               {/* Leave summary with interactive Approve/Reject actions */}
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3.5">
                 <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Leave Management Summary</h4>
@@ -1268,7 +1367,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                       {activeEmps.length + 3} sessions
                     </span>
                   </div>
-                  
+
                   <div className="bg-slate-950/30 p-2.5 border border-slate-850 rounded-xl flex items-center justify-between">
                     <span className="text-slate-400">Database</span>
                     <span className="font-bold text-emerald-400 flex items-center gap-1">
@@ -1313,17 +1412,17 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="month" stroke="#64748b" fontSize={11} />
-                  <YAxis stroke="#64748b" fontSize={11} tickFormatter={(v) => `₹${v/1000}k`} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                    labelStyle={{ color: '#94a3b8', fontSize: '12px', fontWeight: 'bold' }}
-                    itemStyle={{ color: '#e2e8f0', fontSize: '12px' }}
+                  <YAxis stroke="#64748b" fontSize={11} tickFormatter={(v) => `₹${v / 1000}k`} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+                    labelStyle={{ color: '#64748b', fontSize: '12px', fontWeight: 'bold' }}
+                    itemStyle={{ color: '#0f172a', fontSize: '12px' }}
                   />
                   <Area type="monotone" dataKey="cost" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#colorCost)" />
                 </AreaChart>
@@ -1413,11 +1512,10 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                       <td className="py-3 pr-2">
                         <button
                           onClick={() => handleToggleStatus(e.id)}
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
-                            e.status === 'Active' 
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' 
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${e.status === 'Active'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
                               : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
-                          }`}
+                            }`}
                           title="Click to toggle status"
                         >
                           {e.status}
@@ -1495,7 +1593,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                   const tax = Math.round(base * 0.15);
                   const pf = Math.round(base * 0.04);
                   const net = base + hra - (tax + pf);
-                  
+
                   return (
                     <tr key={e.id} className="hover:bg-slate-950/20">
                       <td className="py-3 px-3 font-semibold text-slate-200">{e.name}</td>
@@ -1546,7 +1644,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
       {/* 5. Recruitment Management Tab */}
       {activeSubTab === 'recruitment' && (
         <div className="space-y-6 animate-fadeIn">
-          
+
           {/* Sub Navigation */}
           <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
             {[
@@ -1560,11 +1658,10 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
               <button
                 key={t.id}
                 onClick={() => setRecruitmentSubTab(t.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                  recruitmentSubTab === t.id
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${recruitmentSubTab === t.id
                     ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/10'
                     : 'bg-slate-900 text-slate-400 border-slate-850 hover:bg-slate-800/70 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 <t.icon className="w-3.5 h-3.5" />
                 {t.name}
@@ -1594,7 +1691,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-[10px] font-bold text-slate-455 uppercase mb-1">Department</label>
                     <select
@@ -1727,12 +1824,11 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                           </td>
                           <td className="py-3 text-slate-300">{c.jobTitle}</td>
                           <td className="py-3">
-                            <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full border ${
-                              c.status === 'Offered' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                              c.status === 'Interviewing' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
-                              c.status === 'Rejected' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                              'bg-slate-800 text-slate-400 border-slate-700'
-                            }`}>
+                            <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full border ${c.status === 'Offered' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                c.status === 'Interviewing' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
+                                  c.status === 'Rejected' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                    'bg-slate-800 text-slate-400 border-slate-700'
+                              }`}>
                               {c.status}
                             </span>
                           </td>
@@ -2005,7 +2101,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
       {/* 6. Reports Module Tab */}
       {activeSubTab === 'reports' && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-fadeIn">
-          
+
           {/* Report configuration list */}
           <div className="md:col-span-1 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2 h-fit">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Select Report type</h4>
@@ -2018,11 +2114,10 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
               <button
                 key={r.id}
                 onClick={() => setSelectedReportType(r.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer ${
-                  selectedReportType === r.id
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer ${selectedReportType === r.id
                     ? 'bg-indigo-655/80 text-indigo-200 border-indigo-550/40 shadow-lg shadow-indigo-600/10'
                     : 'bg-transparent text-slate-400 border-transparent hover:bg-slate-800/60'
-                }`}
+                  }`}
               >
                 <span>{r.name}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -2060,7 +2155,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
               {/* Data Table */}
               <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
                 <table className="w-full text-left text-xs border-collapse">
-                  
+
                   {selectedReportType === 'employee' && (
                     <>
                       <thead>
@@ -2587,21 +2682,21 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                 <Sparkles className="w-5 h-5 animate-pulse" />
                 <h3 className="text-sm font-bold text-slate-250">SmartHR Gemini Executive Audit</h3>
               </div>
-              <button 
-                onClick={() => setAiAnalysisResult(null)} 
+              <button
+                onClick={() => setAiAnalysisResult(null)}
                 className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <div className="text-xs text-slate-300 leading-relaxed font-sans max-h-[300px] overflow-y-auto pr-1 whitespace-pre-wrap bg-slate-950/50 p-4 border border-slate-850 rounded-xl">
               {aiAnalysisResult}
             </div>
 
             <div className="flex justify-end pt-3 border-t border-slate-800">
-              <button 
-                onClick={() => setAiAnalysisResult(null)} 
+              <button
+                onClick={() => setAiAnalysisResult(null)}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-550 text-white text-xs font-semibold rounded-xl border border-indigo-500 cursor-pointer"
               >
                 Close Audit
@@ -2620,8 +2715,8 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                 <Sparkles className="w-5 h-5" />
                 <h3 className="text-sm font-bold text-slate-200">AI Screening Report: {selectedCandidateEval.name}</h3>
               </div>
-              <button 
-                onClick={() => setSelectedCandidateEval(null)} 
+              <button
+                onClick={() => setSelectedCandidateEval(null)}
                 className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -2673,8 +2768,8 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
             </div>
 
             <div className="flex justify-end pt-3 border-t border-slate-800">
-              <button 
-                onClick={() => setSelectedCandidateEval(null)} 
+              <button
+                onClick={() => setSelectedCandidateEval(null)}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold rounded-xl border border-slate-750 cursor-pointer"
               >
                 Close Insights
@@ -2693,8 +2788,8 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
                 <Sparkles className="w-5 h-5 animate-pulse" />
                 <h3 className="text-sm font-bold text-slate-200">AI Voice Interview Transcript: {selectedCandidateInt.name}</h3>
               </div>
-              <button 
-                onClick={() => setSelectedCandidateInt(null)} 
+              <button
+                onClick={() => setSelectedCandidateInt(null)}
                 className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -2702,7 +2797,7 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
             </div>
 
             <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1 text-xs font-sans">
-              
+
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-slate-950/40 p-3 border border-slate-850 rounded-xl text-center">
                   <span className="text-[9px] text-slate-550 block font-bold uppercase">Confidence</span>
@@ -2735,8 +2830,8 @@ export default function AdminDashboard({ activeSubTab, setActiveTab, currentUser
             </div>
 
             <div className="flex justify-end pt-3 border-t border-slate-800">
-              <button 
-                onClick={() => setSelectedCandidateInt(null)} 
+              <button
+                onClick={() => setSelectedCandidateInt(null)}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold rounded-xl border border-slate-750 cursor-pointer"
               >
                 Close Transcript

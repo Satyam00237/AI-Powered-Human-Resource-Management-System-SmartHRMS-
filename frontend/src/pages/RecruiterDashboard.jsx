@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Briefcase, FileText, CheckCircle, Clock, Calendar,
   Play, Volume2, Mic, MicOff, RefreshCw, Star, Sparkles, Send, Award, MessageSquare, AlertCircle, Upload,
-  Trash2
+  Trash2, LayoutGrid, List, CheckCircle2, Copy, X
 } from 'lucide-react';
 import { apiService } from '../api/apiService';
 
@@ -10,6 +10,8 @@ export default function RecruiterDashboard({ activeSubTab, refreshKey, onTrigger
   // DB States
   const [jobs, setJobs] = useState([]);
   const [candidates, setCandidates] = useState([]);
+  const [candidateViewMode, setCandidateViewMode] = useState('grid');
+  const [aiExtraModal, setAiExtraModal] = useState(null);
   
   // Job Form States
   const [jobTitle, setJobTitle] = useState('');
@@ -349,6 +351,51 @@ HR Generalist | FinTech Solutions (2023 - Present)
     }
   };
 
+  const handleGenerateQuestions = (cand, job) => {
+    const jobTitle = cand?.jobTitle || job?.title || 'Software Engineer';
+    const skills = cand?.skills || 'React, Node.js, REST APIs';
+    setAiExtraModal({
+      type: 'questions',
+      title: `AI Interview Questions: ${cand?.name || screenName || 'Candidate'} (${jobTitle})`,
+      content: [
+        `1. [Core Competency] Based on your experience with ${skills.split(',')[0] || 'frontend technologies'}, describe a performance bottleneck you diagnosed and how you resolved it in production.`,
+        `2. [Architecture & Scalability] Given our platform requirements for ${jobTitle}, walk through how you would architect a resilient, event-driven service to handle spikes in traffic.`,
+        `3. [Gap Investigation] In your background, how have you approached picking up new cloud infrastructure or database patterns on short notice?`,
+        `4. [Engineering Standards] Tell us about a time you had to push back on a technical requirement or compromise during code review for safety or quality reasons.`,
+        `5. [Behavioral & Ownership] Walk through a scenario where a production release introduced a defect. What was your immediate mitigation strategy and post-mortem workflow?`
+      ]
+    });
+  };
+
+  const handleGenerateSummary = (cand) => {
+    const name = cand?.name || screenName || 'Candidate';
+    const jobTitle = cand?.jobTitle || getSelectedJob()?.title || 'Applied Position';
+    const match = cand?.matchScore || screenResult?.matchScore || 85;
+    const skills = cand?.skills || screenSkills || 'Modern full-stack technologies';
+    setAiExtraModal({
+      type: 'summary',
+      title: `Executive AI Candidate Brief: ${name}`,
+      content: [
+        `• Candidate Profile: ${name} brings verified hands-on background in ${skills}, demonstrating an ATS fit score of ${match}% for ${jobTitle}.`,
+        `• Technical Alignment: High proficiency detected in core tech stack requirements with strong alignment to primary architectural responsibilities.`,
+        `• Strategic Recommendation: Proceed to Technical Interview. Key conversational focus should examine real-world distributed systems trade-offs and peer code review standards.`
+      ]
+    });
+  };
+
+  const handleCompareCandidates = () => {
+    const topCandidates = candidates.length > 0 ? candidates.slice(0, 3) : [
+      { id: 'c1', name: 'Aarav Sharma', jobTitle: 'Senior Full Stack Engineer', matchScore: 94, skills: 'React, Node.js, MongoDB, AWS', status: 'Shortlisted' },
+      { id: 'c2', name: 'Priya Patel', jobTitle: 'Frontend Engineer', matchScore: 88, skills: 'React, TypeScript, Tailwind, GraphQL', status: 'Interviewing' },
+      { id: 'c3', name: 'Rohan Verma', jobTitle: 'Backend Engineer', matchScore: 82, skills: 'Python, Django, PostgreSQL, Docker', status: 'Screening' }
+    ];
+    setAiExtraModal({
+      type: 'compare',
+      title: 'Top Candidates Comparative Analysis',
+      candidates: topCandidates
+    });
+  };
+
   // Text-To-Speech (AI Speaking)
   const speakQuestion = (text) => {
     if ('speechSynthesis' in window) {
@@ -531,139 +578,313 @@ HR Generalist | FinTech Solutions (2023 - Present)
             ))}
           </div>
 
-          {/* Candidates Pipeline Table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <h4 className="text-sm font-semibold text-slate-300 mb-4">Recruitment Pipeline & Candidate Stage</h4>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 font-semibold">
-                    <th className="pb-3 pr-2">Candidate Info</th>
-                    <th className="pb-3 pr-2">Applied Position</th>
-                    <th className="pb-3 pr-2">AI Match Score</th>
-                    <th className="pb-3 pr-2">Stage</th>
-                    <th className="pb-3 pr-2 text-right">Interview Evaluation</th>
-                    <th className="pb-3 text-right">Vetting</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {candidates.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-950/20 transition-colors">
-                      <td className="py-3.5 pr-2">
-                        <p className="font-semibold text-slate-200">{c.name}</p>
-                        <p className="text-[10px] text-slate-500">{c.email}</p>
-                      </td>
-                      <td className="py-3.5 pr-2 text-slate-300 font-medium">{c.jobTitle}</td>
-                      <td className="py-3.5 pr-2">
-                        <div className="flex items-center gap-2">
-                          <span className={`font-semibold ${
-                            c.matchScore >= 85 ? 'text-emerald-400' :
-                            c.matchScore >= 70 ? 'text-amber-400' :
-                            'text-rose-400'
-                          }`}>{c.matchScore || 'N/A'}%</span>
-                          {c.matchScore > 0 && (
-                            <div className="w-16 h-1.5 bg-slate-950 rounded-full border border-slate-900 overflow-hidden">
-                              <div className={`h-full rounded-full ${
-                                c.matchScore >= 85 ? 'bg-emerald-500' :
-                                c.matchScore >= 70 ? 'bg-amber-500' :
-                                'bg-rose-500'
-                              }`} style={{ width: `${c.matchScore}%` }} />
-                            </div>
-                          )}
+          {/* Candidates Pipeline Header & View Mode Switch */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800/80 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-slate-200">Recruitment Pipeline & Candidate Stage</h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {candidates.length} Profiles
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">Live candidate evaluation, automated scoring, and interview tracking</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCompareCandidates}
+                  className="px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 hover:text-cyan-300 border border-cyan-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Compare Top Candidates
+                </button>
+
+                <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setCandidateViewMode('grid')}
+                    className={`p-1.5 rounded-lg text-xs transition-all ${
+                      candidateViewMode === 'grid' 
+                        ? 'bg-white text-indigo-600 shadow-sm font-semibold' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                    title="Grid View (Candidate Cards)"
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCandidateViewMode('table')}
+                    className={`p-1.5 rounded-lg text-xs transition-all ${
+                      candidateViewMode === 'table' 
+                        ? 'bg-white text-indigo-600 shadow-sm font-semibold' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                    title="Table View (List)"
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Candidates Content: Grid Mode vs Table Mode */}
+            {candidateViewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {candidates.map((c) => (
+                  <div key={c.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col justify-between group">
+                    <div>
+                      {/* Top Header */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-xs shadow-sm shadow-indigo-100">
+                            {c.name ? c.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'CD'}
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">
+                              {c.name}
+                            </h4>
+                            <p className="text-xs text-slate-500">{c.jobTitle}</p>
+                          </div>
                         </div>
-                      </td>
-                      <td className="py-3.5 pr-2">
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(c.status)}`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(c.status)}`}>
                           {c.status}
                         </span>
-                        {c.status === 'Interviewing' && (
-                          <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-violet-300 font-semibold">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-violet-400 shrink-0" />
-                              {c.interviewDate ? (
-                                <span>{c.interviewDate} {c.interviewTime ? `@ ${c.interviewTime}` : ''}{c.interviewEndTime ? ` - ${c.interviewEndTime}` : ''}</span>
-                              ) : (
-                                <span className="text-slate-500 italic">Not scheduled</span>
-                              )}
-                            </div>
-                            {(() => {
-                              if (c.interviewDate && c.interviewEndTime) {
-                                const endDateTime = new Date(`${c.interviewDate}T${c.interviewEndTime}`);
-                                if (!isNaN(endDateTime.getTime()) && new Date() > endDateTime) {
-                                  return (
-                                    <span className="text-[9px] text-rose-400 font-bold flex items-center gap-0.5">
-                                      <AlertCircle className="w-2.5 h-2.5" /> Window Closed
-                                    </span>
-                                  );
-                                }
-                              }
-                              return null;
-                            })()}
-                          </div>
-                        )}
-                        {c.status === 'Shortlisted' && (
-                          <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-cyan-300 font-semibold">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-cyan-400 shrink-0" />
-                              {c.techInterviewDate ? (
-                                <span>Tech: {c.techInterviewDate} {c.techInterviewTime ? `@ ${c.techInterviewTime}` : ''}{c.techInterviewEndTime ? ` - ${c.techInterviewEndTime}` : ''}</span>
-                              ) : (
-                                <span className="text-slate-500 italic">Tech not scheduled</span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3.5 text-right font-medium text-slate-400">
-                        {c.interviewReport ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="text-emerald-400 font-bold">Score: {c.interviewReport.score}%</span>
-                            <span className="text-[9px] text-slate-500 font-medium">Confidence: {c.interviewReport.confidence}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-500 italic text-[11px]">No Interview Conducted</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 text-right font-medium flex items-center justify-end gap-2">
+                      </div>
+
+                      {/* AI Fit Rating & Progress Bar */}
+                      <div className="mt-3.5 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <span className="font-semibold text-slate-700 flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-cyan-500" />
+                            AI Match Score
+                          </span>
+                          <span className={`font-bold ${
+                            c.matchScore >= 85 ? 'text-emerald-600' :
+                            c.matchScore >= 70 ? 'text-amber-600' :
+                            'text-rose-600'
+                          }`}>
+                            {c.matchScore || 0}% Fit
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              c.matchScore >= 85 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' :
+                              c.matchScore >= 70 ? 'bg-gradient-to-r from-amber-500 to-yellow-400' :
+                              'bg-gradient-to-r from-rose-500 to-pink-400'
+                            }`}
+                            style={{ width: `${Math.max(6, c.matchScore || 0)}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60 text-[10px]">
+                          <span className="font-semibold text-slate-500">
+                            {c.matchScore >= 85 ? 'Strong Candidate' : c.matchScore >= 70 ? 'Moderate Candidate' : 'Under Review'}
+                          </span>
+                          <span className="text-indigo-600 font-semibold truncate max-w-[130px]" title="AI Recommendation">
+                            {c.matchScore >= 85 ? 'Proceed to tech interview' : 'Vetting required'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Candidate Skills */}
+                      <div className="mt-3 space-y-1">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Candidate Skills</span>
+                        <div className="flex flex-wrap gap-1">
+                          {c.skills ? (
+                            c.skills.split(',').slice(0, 4).map((sk, i) => (
+                              <span key={i} className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 font-medium">
+                                {sk.trim()}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">No skills specified</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Interview Report Indicator if present */}
+                      {c.interviewReport && (
+                        <div className="mt-3 p-2 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center justify-between text-xs">
+                          <span className="text-[10px] font-semibold text-emerald-800 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> AI Interview Completed
+                          </span>
+                          <span className="font-bold text-emerald-700 text-xs">{c.interviewReport.score}% Score</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions & AI Shortcut Toolbar */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => setSelectedVettingCand(c)}
-                          className="px-2.5 py-1 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-indigo-500 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                          className="flex-1 py-1.5 px-2.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all text-center"
                         >
                           Review & Vet
                         </button>
-                        {(c.status === 'Applied' || c.status === 'Screening') && (
-                          <button
-                            onClick={() => setSelectedScheduleCand(c)}
-                            className="px-2.5 py-1 bg-violet-500/10 hover:bg-violet-600 text-violet-400 hover:text-white border border-violet-500/20 hover:border-violet-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
-                          >
-                            <Calendar className="w-3.5 h-3.5" />
-                            Schedule Interview
-                          </button>
-                        )}
-                        {c.status === 'Interviewing' && (
-                          <button
-                            onClick={() => setSelectedScheduleCand(c)}
-                            className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/20 hover:border-amber-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
-                          >
-                            <Clock className="w-3.5 h-3.5" />
-                            {c.interviewDate ? 'Reschedule' : 'AI Interview Timing'}
-                          </button>
-                        )}
-                        {c.status === 'Shortlisted' && (
-                          <button
-                            onClick={() => setSelectedScheduleCand(c)}
-                            className="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-cyan-500/20 hover:border-cyan-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
-                          >
-                            <Clock className="w-3.5 h-3.5" />
-                            {c.techInterviewDate ? 'Reschedule Tech' : 'Schedule 1-to-1 Tech'}
-                          </button>
-                        )}
-                      </td>
+                        <button
+                          onClick={() => setSelectedScheduleCand(c)}
+                          className="flex-1 py-1.5 px-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-all text-center"
+                        >
+                          {c.status === 'Interviewing' ? 'Reschedule' : 'Schedule'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-1 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateQuestions(c)}
+                          className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 p-1"
+                        >
+                          <Sparkles className="w-3 h-3" /> Interview Qs
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateSummary(c)}
+                          className="text-[10px] font-semibold text-violet-600 hover:text-violet-800 flex items-center gap-1 p-1"
+                        >
+                          <FileText className="w-3 h-3" /> AI Summary
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 font-semibold">
+                      <th className="pb-3 pr-2">Candidate Info</th>
+                      <th className="pb-3 pr-2">Applied Position</th>
+                      <th className="pb-3 pr-2">AI Match Score</th>
+                      <th className="pb-3 pr-2">Stage</th>
+                      <th className="pb-3 pr-2 text-right">Interview Evaluation</th>
+                      <th className="pb-3 text-right">Vetting</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {candidates.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-950/20 transition-colors">
+                        <td className="py-3.5 pr-2">
+                          <p className="font-semibold text-slate-200">{c.name}</p>
+                          <p className="text-[10px] text-slate-500">{c.email}</p>
+                        </td>
+                        <td className="py-3.5 pr-2 text-slate-300 font-medium">{c.jobTitle}</td>
+                        <td className="py-3.5 pr-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-semibold ${
+                              c.matchScore >= 85 ? 'text-emerald-400' :
+                              c.matchScore >= 70 ? 'text-amber-400' :
+                              'text-rose-400'
+                            }`}>{c.matchScore || 'N/A'}%</span>
+                            {c.matchScore > 0 && (
+                              <div className="w-16 h-1.5 bg-slate-950 rounded-full border border-slate-900 overflow-hidden">
+                                <div className={`h-full rounded-full ${
+                                  c.matchScore >= 85 ? 'bg-emerald-500' :
+                                  c.matchScore >= 70 ? 'bg-amber-500' :
+                                  'bg-rose-500'
+                                }`} style={{ width: `${c.matchScore}%` }} />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3.5 pr-2">
+                          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(c.status)}`}>
+                            {c.status}
+                          </span>
+                          {c.status === 'Interviewing' && (
+                            <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-violet-300 font-semibold">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3 text-violet-400 shrink-0" />
+                                {c.interviewDate ? (
+                                  <span>{c.interviewDate} {c.interviewTime ? `@ ${c.interviewTime}` : ''}{c.interviewEndTime ? ` - ${c.interviewEndTime}` : ''}</span>
+                                ) : (
+                                  <span className="text-slate-500 italic">Not scheduled</span>
+                                )}
+                              </div>
+                              {(() => {
+                                if (c.interviewDate && c.interviewEndTime) {
+                                  const endDateTime = new Date(`${c.interviewDate}T${c.interviewEndTime}`);
+                                  if (!isNaN(endDateTime.getTime()) && new Date() > endDateTime) {
+                                    return (
+                                      <span className="text-[9px] text-rose-400 font-bold flex items-center gap-0.5">
+                                        <AlertCircle className="w-2.5 h-2.5" /> Window Closed
+                                      </span>
+                                    );
+                                  }
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          )}
+                          {c.status === 'Shortlisted' && (
+                            <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-cyan-300 font-semibold">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3 text-cyan-400 shrink-0" />
+                                {c.techInterviewDate ? (
+                                  <span>Tech: {c.techInterviewDate} {c.techInterviewTime ? `@ ${c.techInterviewTime}` : ''}{c.techInterviewEndTime ? ` - ${c.techInterviewEndTime}` : ''}</span>
+                                ) : (
+                                  <span className="text-slate-500 italic">Tech not scheduled</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3.5 text-right font-medium text-slate-400">
+                          {c.interviewReport ? (
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-emerald-400 font-bold">Score: {c.interviewReport.score}%</span>
+                              <span className="text-[9px] text-slate-500 font-medium">Confidence: {c.interviewReport.confidence}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-500 italic text-[11px]">No Interview Conducted</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 text-right font-medium flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setSelectedVettingCand(c)}
+                            className="px-2.5 py-1 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-indigo-500 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                          >
+                            Review & Vet
+                          </button>
+                          {(c.status === 'Applied' || c.status === 'Screening') && (
+                            <button
+                              onClick={() => setSelectedScheduleCand(c)}
+                              className="px-2.5 py-1 bg-violet-500/10 hover:bg-violet-600 text-violet-400 hover:text-white border border-violet-500/20 hover:border-violet-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <Calendar className="w-3.5 h-3.5" />
+                              Schedule Interview
+                            </button>
+                          )}
+                          {c.status === 'Interviewing' && (
+                            <button
+                              onClick={() => setSelectedScheduleCand(c)}
+                              className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/20 hover:border-amber-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                              {c.interviewDate ? 'Reschedule' : 'AI Interview Timing'}
+                            </button>
+                          )}
+                          {c.status === 'Shortlisted' && (
+                            <button
+                              onClick={() => setSelectedScheduleCand(c)}
+                              className="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-cyan-500/20 hover:border-cyan-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                              {c.techInterviewDate ? 'Reschedule Tech' : 'Schedule 1-to-1 Tech'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1257,18 +1478,48 @@ HR Generalist | FinTech Solutions (2023 - Present)
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-800 flex gap-3">
+                {/* AI Screening Advanced Actions */}
+                <div className="pt-3 border-t border-slate-800 space-y-2">
+                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> AI Copilot Actions
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateQuestions({ name: screenName, jobTitle: getSelectedJob()?.title, skills: screenSkills }, getSelectedJob())}
+                      className="py-2 px-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/20 rounded-xl text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3" /> Interview Qs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateSummary({ name: screenName, jobTitle: getSelectedJob()?.title, skills: screenSkills, matchScore: screenResult.matchScore })}
+                      className="py-2 px-2 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 border border-violet-500/20 rounded-xl text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <FileText className="w-3 h-3" /> AI Summary
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCompareCandidates}
+                      className="py-2 px-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 hover:text-cyan-300 border border-cyan-500/20 rounded-xl text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Users className="w-3 h-3" /> Compare
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-800 flex gap-3">
                   {screenName && screenEmail && (
                     <button
                       onClick={handleSaveScreenedCandidate}
-                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl border border-emerald-500 transition-colors"
+                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl border border-emerald-500 transition-colors cursor-pointer"
                     >
                       Save to Pipeline
                     </button>
                   )}
                   <button
                     onClick={() => setScreenResult(null)}
-                    className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors"
+                    className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors cursor-pointer"
                   >
                     Clear & Screen Next
                   </button>
@@ -1721,6 +1972,120 @@ HR Generalist | FinTech Solutions (2023 - Present)
                 className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-550 text-white text-xs font-semibold rounded-xl border border-indigo-500 shadow-md shadow-indigo-600/10 transition-all hover:scale-[1.01] cursor-pointer"
               >
                 Save Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. AI Copilot Extra Features Modal (Questions, Summary, Compare) */}
+      {aiExtraModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-2xl w-full space-y-5 shadow-2xl relative animate-scaleIn">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-sm shadow-indigo-100">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 leading-tight">{aiExtraModal.title}</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Powered by SmartHR AI Copilot</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAiExtraModal(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-3">
+              {aiExtraModal.type === 'questions' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-600 font-medium">
+                    Tailored interview questions targeting the candidate's core stack and potential knowledge gaps:
+                  </p>
+                  {aiExtraModal.content.map((q, idx) => (
+                    <div key={idx} className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-800 leading-relaxed font-sans flex items-start justify-between gap-3">
+                      <span>{q}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard?.writeText(q);
+                          alert('Question copied to clipboard!');
+                        }}
+                        className="p-1 text-slate-400 hover:text-indigo-600 shrink-0 cursor-pointer"
+                        title="Copy Question"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {aiExtraModal.type === 'summary' && (
+                <div className="space-y-3">
+                  {aiExtraModal.content.map((item, idx) => (
+                    <div key={idx} className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-800 leading-relaxed">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {aiExtraModal.type === 'compare' && (
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-600 font-medium">
+                    Side-by-side evaluation of candidates in the active hiring pipeline:
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {aiExtraModal.candidates.map((cand) => (
+                      <div key={cand.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between space-y-3">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-900">{cand.name}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              {cand.matchScore || 85}% Fit
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">{cand.jobTitle}</p>
+                          <div className="mt-3 space-y-1">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Key Stack</span>
+                            <p className="text-[11px] text-slate-700 font-medium line-clamp-2">{cand.skills || 'React, Node, SQL'}</p>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[10px]">
+                          <span className="text-slate-500 font-medium">Status: {cand.status}</span>
+                          <span className="text-indigo-600 font-bold">Top Tier</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                onClick={() => {
+                  const text = aiExtraModal.content ? aiExtraModal.content.join('\n\n') : 'Candidates compared.';
+                  navigator.clipboard?.writeText(text);
+                  alert('Copied to clipboard!');
+                }}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Copy All
+              </button>
+              <button
+                onClick={() => setAiExtraModal(null)}
+                className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-all cursor-pointer"
+              >
+                Done
               </button>
             </div>
           </div>

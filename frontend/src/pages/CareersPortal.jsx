@@ -611,8 +611,8 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                     {interviewHistory.map((h, idx) => (
                       <div key={idx} className={`flex ${h.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${h.role === 'user'
-                            ? 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-600/10'
-                            : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700/65'
+                          ? 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-600/10'
+                          : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700/65'
                           }`}>
                           <span className="font-bold block mb-1 text-[9px] uppercase tracking-wide opacity-80">
                             {h.role === 'user' ? currentUser.name : 'AI Interviewer'}
@@ -639,8 +639,8 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                           onClick={toggleListening}
                           disabled={evaluating}
                           className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg border transition-all ${isListening
-                              ? 'bg-rose-600 text-white border-rose-500 animate-pulse scale-[1.03]'
-                              : 'bg-slate-950 text-slate-400 hover:text-slate-200 border-slate-855 hover:border-slate-750'
+                            ? 'bg-rose-600 text-white border-rose-500 animate-pulse scale-[1.03]'
+                            : 'bg-slate-950 text-slate-400 hover:text-slate-200 border-slate-855 hover:border-slate-750'
                             }`}
                           title={isListening ? "Listening... Click to pause" : "Click to speak answer"}
                         >
@@ -700,8 +700,8 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                     <p className="text-xs text-indigo-400 font-semibold">{activeInterviewApp.jobTitle}</p>
                   </div>
                   <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${interviewReport.score >= 75
-                      ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20'
-                      : 'bg-rose-500/15 text-rose-400 border-rose-500/20'
+                    ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20'
+                    : 'bg-rose-500/15 text-rose-400 border-rose-500/20'
                     }`}>
                     {interviewReport.score >= 75 ? 'SHORTLISTED' : 'COMPLETED'}
                   </span>
@@ -806,8 +806,8 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                   key={tab.id}
                   onClick={() => { setActiveTab(tab.id); setSelectedJob(null); }}
                   className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${activeTab === tab.id
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
                     }`}
                 >
                   {tab.label}
@@ -834,8 +834,8 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
                     }
                   }}
                   className={`p-2 rounded-xl border transition-all relative ${showNotifications
-                      ? 'bg-indigo-650 border-indigo-550 text-white shadow-md'
-                      : 'bg-slate-900 border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-255'
+                    ? 'bg-indigo-650 border-indigo-550 text-white shadow-md'
+                    : 'bg-slate-900 border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-255'
                     }`}
                   title="Notifications"
                 >
@@ -1353,8 +1353,8 @@ export default function CareersPortal({ onClose, onLoginSuccess, currentUser, on
 
             {profileMsg && (
               <div className={`p-3 text-sm rounded-xl border ${profileMsg.type === 'success'
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                 }`}>
                 {profileMsg.text}
               </div>

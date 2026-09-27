@@ -8,7 +8,7 @@ export default function AccessDenied({ currentRole, onLogout, onGoHome }) {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-rose-500/10 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="w-full max-w-md p-8 rounded-3xl border border-rose-500/20 bg-slate-900/20 backdrop-blur-xl shadow-2xl text-center relative z-10 animate-fade-in">
-        
+
         {/* Warning Icon with pulse glow */}
         <div className="mx-auto w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shadow-lg shadow-rose-500/5 mb-6 animate-pulse">
           <ShieldAlert className="w-8 h-8 text-rose-500" />
@@ -30,7 +30,7 @@ export default function AccessDenied({ currentRole, onLogout, onGoHome }) {
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Go to My Dashboard</span>
           </button>
-          
+
           <button
             onClick={onLogout}
             className="flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/20 transition-all hover:scale-[1.02]"
