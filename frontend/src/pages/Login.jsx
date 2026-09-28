@@ -207,7 +207,7 @@ export default function Login({ onLoginSuccess, onShowCareers }) {
               ))}
             </div>
 
-            {/* Careers Portal link
+            {/* Careers Portal link */}
             <div className="mt-6 text-center border-t border-slate-200 pt-4">
               <span className="text-xs text-slate-500">Looking for jobs? </span>
               <button
@@ -217,7 +217,7 @@ export default function Login({ onLoginSuccess, onShowCareers }) {
               >
                 Explore our Careers Portal
               </button>
-            </div> */}
+            </div>
 
           </div>
         </div>
