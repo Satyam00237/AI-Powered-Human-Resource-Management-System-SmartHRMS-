@@ -128,12 +128,19 @@
   background: rgba(6, 182, 212, 0.4);
 }
 
-/* Custom animation classes
+/* Custom animation classes */
 @keyframes pulse-slow {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .animate-pulse-slow {
   animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-} */
+}
