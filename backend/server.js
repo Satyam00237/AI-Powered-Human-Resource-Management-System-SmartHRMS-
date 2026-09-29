@@ -590,24 +590,24 @@ app.get('/api/leaves', authenticateToken, async (req, res) => {
   }
 });
 
-// app.post('/api/leaves', authenticateToken, async (req, res) => {
-//   try {
-//     const { employeeId, leaveType, startDate, endDate, reason } = req.body;
-//     if (!employeeId || !leaveType || !startDate || !endDate || !reason) {
-//       return res.status(400).json({ error: 'Missing required leave fields' });
-//     }
+app.post('/api/leaves', authenticateToken, async (req, res) => {
+  try {
+    const { employeeId, leaveType, startDate, endDate, reason } = req.body;
+    if (!employeeId || !leaveType || !startDate || !endDate || !reason) {
+      return res.status(400).json({ error: 'Missing required leave fields' });
+    }
 
-//     // Secure Leave restriction: employees can only request leave for themselves
-//     if (req.user.role !== 'Admin' && req.user.id !== employeeId) {
-//       return res.status(403).json({ error: 'Access denied. You cannot request leave for another employee.' });
-//     }
+    // Secure Leave restriction: employees can only request leave for themselves
+    if (req.user.role !== 'Admin' && req.user.id !== employeeId) {
+      return res.status(403).json({ error: 'Access denied. You cannot request leave for another employee.' });
+    }
 
-//     const reqEntry = await db.requestLeave(employeeId, leaveType, startDate, endDate, reason);
-//     res.status(201).json(reqEntry);
-//   } catch (e) {
-//     res.status(500).json({ error: 'Failed to request leave' });
-//   }
-// });
+    const reqEntry = await db.requestLeave(employeeId, leaveType, startDate, endDate, reason);
+    res.status(201).json(reqEntry);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to request leave' });
+  }
+});
 
 app.put('/api/leaves/:id/approve', authenticateToken, authorizeRoles('Admin', 'Senior Manager'), async (req, res) => {
   try {
