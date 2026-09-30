@@ -644,13 +644,13 @@ app.put('/api/leaves/:id/reject', authenticateToken, authorizeRoles('Admin', 'Se
 });
 
 // 4. Recruitment Management (Jobs)
-// app.get('/api/jobs', async (req, res) => {
-//   try {
-//     res.json(await db.getJobs());
-//   } catch (e) {
-//     res.status(500).json({ error: 'Failed to fetch jobs' });
-//   }
-// });
+app.get('/api/jobs', async (req, res) => {
+  try {
+    res.json(await db.getJobs());
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch jobs' });
+  }
+});
 
 app.post('/api/jobs', authenticateToken, authorizeRoles('Admin', 'HR Recruiter'), async (req, res) => {
   try {
