@@ -648,7 +648,7 @@ app.get('/api/jobs', async (req, res) => {
   try {
     res.json(await db.getJobs());
   } catch (e) {
-    res.status(500).json({ error: 'Failed to fetch jobs' });
+    // res.status(500).json({ error: 'Failed to fetch jobs' });
   }
 });
 
