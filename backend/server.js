@@ -735,13 +735,13 @@ app.put('/api/candidates/:id/interview-report', authenticateToken, authorizeRole
 });
 
 // Policies
-// app.get('/api/policies', authenticateToken, async (req, res) => {
-//   try {
-//     res.json(await db.getPolicies());
-//   } catch (e) {
-//     res.status(500).json({ error: 'Failed to fetch policies' });
-//   }
-// });
+app.get('/api/policies', authenticateToken, async (req, res) => {
+  try {
+    res.json(await db.getPolicies());
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch policies' });
+  }
+});
 
 // --- AI Service SECURE Proxies ---
 app.post('/api/ai/screen', authenticateToken, authorizeRoles('Admin', 'HR Recruiter'), async (req, res) => {
