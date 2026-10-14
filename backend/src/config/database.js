@@ -30,7 +30,6 @@ export const databaseStatus = {
   connectionError: null,
   _initPromise: null
 };
-// connect mongo
 async function connectMongo() {
   if (mongoose.connection.readyState === 1) {
     cachedConnection.conn = mongoose.connection;
