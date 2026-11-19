@@ -59,7 +59,7 @@ export async function loginUser(email, password) {
 }
 
 
-
+// Registering candidate
 export async function registerCandidate({ name, email, password }) {
   if (!name || !email || !password) {
     const err = new Error('Missing name, email, or password');
